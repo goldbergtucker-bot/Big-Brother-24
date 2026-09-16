@@ -27,14 +27,27 @@
   const card=(h,role='',full=false)=>h?`<div class="player-card"><div class="portrait-box">${portrait(h)}</div><strong>${esc(full?name(h):displayName(h))}</strong>${role?`<span>${esc(role)}</span>`:''}</div>`:'';
 
   function makeState(){
-    const demoGender = {
-      'Daniel':'Male','Alyssa':'Female','Ameerah':'Female','Brittany':'Female','Indy':'Female','Jasmine':'Female',
-      'Joe':'Male','Joseph':'Male','Kyle':'Male','Michael':'Male','Monte':'Male','Nicole':'Female','Paloma':'Female','Taylor':'Female','Terrance':'Male','Turner':'Male'
-    };
-    const houseguests=DEMO.map((p,i)=>({...p,id:p.id||`bb24-${i+1}`,slot:i+1,gender:p.gender||demoGender[p.firstName]||'',active:true,evicted:false,juryMember:false,placement:null,ratings:{general:50,physical:50,mental:50,social:50,strategic:50},relationships:{},portraitUrl:p.portraitUrl||p.imageUrl||''}));
+    // BB23-style setup: start with 16 completely blank custom Houseguest slots.
+    // No real BB24 names or portraits are loaded into the simulator.
+    const houseguests=Array.from({length:16},(_,i)=>({
+      id:`bb24-${i+1}`, slot:i+1, firstName:'', lastName:'', nickname:'', gender:'',
+      imageUrl:'', portraitUrl:'', status:'Active', active:true, evicted:false, juryMember:false, placement:null,
+      ratings:{general:50,physical:50,mental:50,social:50,strategic:50},
+      relationships:{}, alliances:[], bestieGroup:null, backstage:false
+    }));
     const relationships={};
-    houseguests.forEach(a=>{relationships[a.id]={};houseguests.forEach(b=>{if(a.id!==b.id)relationships[a.id][b.id]={friendship:50,trust:50,loyalty:50,rivalry:0,respect:50,attraction:0,type:'Unspecified',note:''}})});
-    return {season:{name:'Big Brother 24 — Custom Cast',themeUrl:'',logoUrl:'',liveFeedsEnabled:true,liveFeedProfile:{}},houseguests,relationships,alliances:[],currentWeek:1,currentHOH:null,nominees:[],povPlayers:[],povWinner:null,evictionVotes:[],jury:[],evicted:[],finale:null,finished:false};
+    houseguests.forEach(a=>{
+      relationships[a.id]={};
+      houseguests.forEach(b=>{
+        if(a.id!==b.id) relationships[a.id][b.id]={friendship:50,trust:50,loyalty:50,rivalry:0,respect:50,attraction:0,type:'Unspecified',note:''};
+      });
+    });
+    return {
+      season:{name:'Big Brother 24',themeUrl:'',logoUrl:'',liveFeedsEnabled:true,liveFeedProfile:{}},
+      houseguests,relationships,alliances:[],currentWeek:1,currentHOH:null,nominees:[],povPlayers:[],povWinner:null,
+      evictionVotes:[],jury:[],evicted:[],finale:null,finished:false,
+      bestieGroups:[],splitHouse:{},backstageBossId:null,backstageIds:[],backstageResolved:false
+    };
   }
   function snapshot(){return {currentWeek:state.currentWeek,currentHOH:state.currentHOH,nominees:[...state.nominees],povPlayers:[...state.povPlayers],povWinner:state.povWinner,evictionVotes:state.evictionVotes.map(v=>({...v})),jury:[...state.jury],houseguests:state.houseguests.map(h=>({...h,ratings:{...h.ratings}})),finale:state.finale?JSON.parse(JSON.stringify(state.finale)):null}};
   function logEvent(e){const rec={id:history.length+1,...e};rec.snapshot=snapshot();history.push(rec);}
@@ -96,24 +109,64 @@
     const pool=living(state);
     if(!pool.length)return;
 
-    // WEEK 1 — Backstage Boss was cancelled after Paloma Aguilar left.
-    // We still record the cancelled twist so it is visible in the event history.
+    // WEEK 1 — Backstage Boss is an active BB24-style twist.
+    // The Backstage Boss is safe and cannot compete. After the HOH is crowned,
+    // the Boss selects three other Houseguests for the Backstage. Those three
+    // cannot compete or vote and cannot be nominated, but they remain eligible
+    // to leave the game through the Backstage mechanism. In this custom simulator
+    // one of the three always self-evicts, so the planned Backstage eviction vote
+    // never occurs.
     if(String(week)==='1'){
-      const hoh=choose(pool,'physical'); state.currentHOH=hoh.id;
-      logEvent({week,phase:'twist',type:'twist',title:'Backstage Boss — Twist Cancelled',twist:'backstage-boss',participants:pool.map(h=>h.id),lines:['The Backstage Boss twist was introduced for Week 1, but Paloma Aguilar left the game before the planned Backstage eviction. The twist was cancelled.']});
-      logEvent({week,phase:'hoh',type:'hoh',title:`${displayName(hoh)} Wins HOH`,winnerId:hoh.id,participants:pool.map(h=>h.id),competition:comp(week,'hoh',side),lines:[`${displayName(hoh)} wins Head of Household.`]});
-      const nominees=chooseNominees(living(state),hoh); state.nominees=nominees.map(h=>h.id);
-      logEvent({week,phase:'nominations',type:'nominations',title:'Nomination Ceremony',hohId:hoh.id,nomineeIds:state.nominees,lines:[`${displayName(hoh)} nominates ${nominees.map(displayName).join(' and ')}.`]});
-      const auto=[hoh,...nominees],picked=living(state).filter(h=>!auto.some(x=>x.id===h.id)).sort(()=>Math.random()-.5).slice(0,3);state.povPlayers=[...auto,...picked].map(h=>h.id);
-      logEvent({week,phase:'veto',type:'pov-players',title:'Power of Veto Players Selected',hohId:hoh.id,nomineeIds:state.nominees,povPlayers:state.povPlayers,participants:state.povPlayers,lines:['The six Power of Veto players have been selected.']});
-      const pv=choose(state.povPlayers.map(id=>byId(snapshot(),id)),'physical');state.povWinner=pv.id;
+      const boss=choose(pool,'strategic');
+      state.backstageBossId=boss.id;
+      boss.backstageBoss=true;
+      logEvent({week,phase:'twist',type:'backstage-boss',title:`${displayName(boss)} Is the Backstage Boss`,twist:'backstage-boss',bossId:boss.id,participants:[boss.id],lines:[`${displayName(boss)} is named the Backstage Boss. The Backstage Boss is safe from eviction and cannot compete in competitions.`]});
+
+      // The Backstage Boss does not compete in the opening HOH.
+      const eligibleForHOH=pool.filter(h=>h.id!==boss.id);
+      const hoh=choose(eligibleForHOH,'physical');
+      state.currentHOH=hoh.id;
+      logEvent({week,phase:'hoh',type:'hoh',title:`${displayName(hoh)} Wins HOH`,winnerId:hoh.id,participants:eligibleForHOH.map(h=>h.id),competition:comp(week,'hoh',side),lines:[`${displayName(hoh)} wins Head of Household.`]});
+
+      // The Boss selects exactly three Backstage Houseguests after the HOH.
+      const backstagePool=pool.filter(h=>h.id!==boss.id&&h.id!==hoh.id).sort(()=>Math.random()-.5);
+      const backstage=backstagePool.slice(0,3);
+      state.backstageIds=backstage.map(h=>h.id);
+      backstage.forEach(h=>h.backstage=true);
+      logEvent({week,phase:'twist',type:'backstage-selection',title:'Backstage Houseguests Selected',twist:'backstage-boss',bossId:boss.id,backstageIds:state.backstageIds,participants:state.backstageIds,lines:[`${displayName(boss)} selects three Houseguests to be Backstage.`,`The three Backstage Houseguests cannot compete in competitions or vote, and cannot be nominated. They remain eligible to leave the game through the Backstage twist.`]});
+
+      // Backstage Houseguests are NOT eligible for normal nominations.
+      const nominationPool=living(state).filter(h=>h.id!==hoh.id&&!state.backstageIds.includes(h.id)&&!h.backstageBoss);
+      const nominees=chooseNominees(nominationPool,hoh);
+      state.nominees=nominees.map(h=>h.id);
+      logEvent({week,phase:'nominations',type:'nominations',title:'Nomination Ceremony',hohId:hoh.id,nomineeIds:state.nominees,lines:[`${displayName(hoh)} nominates ${nominees.map(displayName).join(' and ')}.`,'The three Backstage Houseguests are not eligible for nomination under the Backstage twist.']});
+
+      const auto=[hoh,...nominees];
+      const picked=eligibleForHOH.filter(h=>!auto.some(x=>x.id===h.id)&&!state.backstageIds.includes(h.id)).sort(()=>Math.random()-.5).slice(0,3);
+      state.povPlayers=[...auto,...picked].map(h=>h.id);
+      logEvent({week,phase:'veto',type:'pov-players',title:'Power of Veto Players Selected',hohId:hoh.id,nomineeIds:state.nominees,povPlayers:state.povPlayers,participants:state.povPlayers,lines:['The six Power of Veto players have been selected. The Backstage Houseguests cannot compete.']});
+      const pv=choose(state.povPlayers.map(id=>byId(snapshot(),id)),'physical');
+      state.povWinner=pv.id;
       logEvent({week,phase:'veto',type:'veto',title:`${displayName(pv)} Wins the Power of Veto`,winnerId:pv.id,participants:state.povPlayers,competition:comp(week,'pov',side),lines:[`${displayName(pv)} wins the Power of Veto.`]});
-      const replacement=living(state).find(h=>h.id!==hoh.id&&!state.nominees.includes(h.id));
+      const replacementPool=living(state).filter(h=>h.id!==hoh.id&&!state.nominees.includes(h.id)&&!state.backstageIds.includes(h.id)&&!h.backstageBoss);
+      const replacement=replacementPool[0]||null;
       const saved=nominees.find(h=>h.id===pv.id)||null;
       if(saved&&replacement){state.nominees=[...nominees.filter(h=>h.id!==saved.id),replacement].map(h=>h.id);}
       logEvent({week,phase:'veto',type:'veto-ceremony',title:'Veto Ceremony',hohId:hoh.id,winnerId:pv.id,nomineeIds:nominees.map(h=>h.id),finalNomineeIds:state.nominees,vetoUsed:!!saved,lines:[saved?`${displayName(pv)} uses the Veto on ${displayName(saved)} and a replacement nominee is named.`:'The Power of Veto is not used.']});
-      const pal=state.houseguests.find(h=>displayName(h)==='Paloma');
-      if(pal&&pal.active){pal.active=false;pal.evicted=true;pal.placement=16;state.evicted.push(pal.id);logEvent({week,phase:'eviction',type:'self-eviction',title:'Paloma Leaves the Game',evictedId:pal.id,selfEviction:true,nomineeIds:state.nominees,evictedVoteCount:null,stayVoteCount:null,lines:['Paloma Aguilar self-evicts from the Big Brother house. The planned Week 1 eviction is cancelled.']});}
+
+      // Custom BB24 behavior requested: one Backstage Houseguest always self-evicts.
+      // There is no eviction vote and no "0 to 0" result. The other two remain in
+      // the game once the Backstage twist ends.
+      const selfEvicter=backstage[Math.floor(Math.random()*backstage.length)];
+      selfEvicter.active=false;
+      selfEvicter.evicted=true;
+      selfEvicter.placement=16;
+      selfEvicter.backstage=false;
+      state.evicted.push(selfEvicter.id);
+      state.backstageResolved=true;
+      backstage.filter(h=>h.id!==selfEvicter.id).forEach(h=>h.backstage=false);
+      boss.backstageBoss=false;
+      logEvent({week,phase:'eviction',type:'self-eviction',title:'Backstage Houseguest Self-Evicts',evictedId:selfEvicter.id,selfEviction:true,backstageIds:state.backstageIds,nomineeIds:state.nominees,evictedVoteCount:null,stayVoteCount:null,lines:[`${displayName(selfEvicter)} self-evicts from the Big Brother house.`]});
       return;
     }
 
@@ -164,7 +217,18 @@
     logEvent({week,phase:side?'split-house':'eviction',type:'eviction',title:`${side?side+': ':''}${displayName(evicted)} Is Evicted`,evictedId:evicted.id,nomineeIds:finalNominees.map(h=>h.id),evictedVoteCount:counts[evicted.id]||0,stayVoteCount:counts[stay?.id]||0,lines:[`By a vote of ${counts[evicted.id]||0} to ${counts[stay?.id]||0}, ${displayName(evicted)} is evicted.`]});
     if(week>=3&&week<=5) updateBestiesAfterEviction(week,evicted.id);
   }
-  function bestieGroups(week){const ids={Alyssa:'bb24-2',Indy:'bb24-5',Ameerah:'bb24-3',Terrance:'bb24-15',Brittany:'bb24-4',Michael:'bb24-10',Daniel:'bb24-1',Kyle:'bb24-9',Jasmine:'bb24-6',Turner:'bb24-16',Joseph:'bb24-8',Monte:'bb24-11',Nicole:'bb24-12',Taylor:'bb24-14'};const raw=week===3?CONFIG.besties.week3:week===4?CONFIG.besties.week4AfterAmeerah:CONFIG.besties.week5AfterNicole;return raw.map(g=>g.map(n=>ids[n]).filter(Boolean));}
+  function bestieGroups(week){
+    // BB24-style Festie Besties, generated from the user's custom cast.
+    if(state.bestieGroups?.length){
+      return state.bestieGroups.map(g=>g.map(id=>byId(snapshot(),id)).filter(h=>h&&h.active));
+    }
+    const pool=living(state).slice().sort(()=>Math.random()-.5);
+    const groups=[];
+    while(pool.length) groups.push(pool.splice(0,2));
+    state.bestieGroups=groups.map(g=>g.map(h=>h.id));
+    groups.forEach((g,i)=>g.forEach(h=>h.bestieGroup=i));
+    return groups;
+  }
   function splitWeek(){
     state.currentWeek=7;
     const pool=living(state).slice();
@@ -258,7 +322,7 @@
       </div>
     </article>`).join('');
   }
-  function renderTeams(){const groups=[['BroChella','Week 7 split-house side'],['Dyre Fest','Week 7 split-house side'],['Festie Besties','Weeks 3–5'],['Backstage Boss','Week 1 — cancelled']];$('teamsGrid').innerHTML=groups.map(g=>`<section class="team"><h3>${esc(g[0])}</h3><p>${esc(g[1])}</p></section>`).join('')}
+  function renderTeams(){const groups=[['BroChella','Week 7 split-house side'],['Dyre Fest','Week 7 split-house side'],['Festie Besties','Weeks 3–5 — custom pairs/trios'],['Backstage Boss','Week 1 — three selected Houseguests are restricted from competing and voting']];$('teamsGrid').innerHTML=groups.map(g=>`<section class="team"><h3>${esc(g[0])}</h3><p>${esc(g[1])}</p></section>`).join('')}
   function renderTwists(){const el=$('twistsGrid');if(!el)return;el.innerHTML=CONFIG.twists.map(t=>`<article class="twist-card ${t.cancelled?'cancelled':''}"><div class="twist-card-top"><span>${t.cancelled?'CANCELLED':'ACTIVE'}</span><small>WEEK${t.weeks.length>1?'S':''} ${t.weeks.join(', ')}</small></div><h3>${esc(t.name)}</h3><p>${esc(t.description)}</p>${t.mechanics?`<ul>${t.mechanics.map(m=>`<li>${esc(m)}</li>`).join('')}</ul>`:''}</article>`).join('')}
   function renderSocial(){const opts=state.houseguests.map(h=>`<option value="${h.id}">${esc(displayName(h))}</option>`).join('');$('relationshipsGrid').innerHTML=`<div class="relationship-editor"><div class="relationship-selects"><label>From<select id="relFrom">${opts}</select></label><label>To<select id="relTo">${opts}</select></label></div><div class="relationship-sliders">${['friendship','trust','loyalty','rivalry','respect','attraction'].map(k=>`<label><span>${k}<b id="rel-${k}-value">50</b></span><input id="rel-${k}" type="range" min="0" max="100" value="50"></label>`).join('')}</div><button id="saveRelationship" class="primary">Save Relationship</button><p class="relationship-help">Relationships are directional, so A → B can differ from B → A.</p></div>`;
     $('allianceSetup').innerHTML=`<div class="alliance-create"><label>Alliance Name<input id="allianceName" placeholder="Alliance name"></label><label>Type<select id="allianceType"><option>Majority Alliance</option><option>Core Alliance</option><option>Final Two</option><option>Final Three</option><option>Showmance</option><option>Custom</option></select></label><div class="member-picker">${state.houseguests.map(h=>`<label class="member-picker-card"><input type="checkbox" value="${h.id}"><span>${esc(displayName(h))}</span></label>`).join('')}</div><button id="createAlliance" class="primary">Create</button></div><div class="custom-alliance-list">${state.alliances.map((a,i)=>`<div class="setup-alliance"><strong>${esc(a.name)}</strong><span class="setup-alliance-members">${a.members.map(id=>esc(displayName(byId(null,id)))).join(', ')}</span><button class="danger-link" data-delete-alliance="${i}">Delete</button></div>`).join('')}</div>`;
@@ -272,7 +336,7 @@
     const tab=e.target.closest('.view-tabs button');if(tab){activeTab=tab.dataset.tab;renderTab();return}
     const del=e.target.closest('[data-delete-alliance]');if(del){state.alliances.splice(Number(del.dataset.deleteAlliance),1);renderSetup()}
   });
-  $('simulateBtn').onclick=simulate;$('resimulateBtn').onclick=simulate;$('previousBtn').onclick=()=>{if(pointer>0){pointer--;renderAll()}};$('nextBtn').onclick=()=>{if(pointer<history.length-1){pointer++;renderAll()}};$('revealSeasonBtn').onclick=()=>{pointer=history.length-1;renderAll()};$('revealWeekBtn').onclick=()=>{if(pointer<0){pointer=0}else{const current=history[pointer]?.week;const next=history.findIndex((e,i)=>i>pointer&&String(e.week)!==String(current));pointer=next<0?history.length-1:next-1}renderAll()};$('backToSetupBtn').onclick=()=>{$('seasonView').classList.add('hidden');$('setupView').classList.remove('hidden')};$('loadDemoBtn').onclick=()=>{state=makeState();renderSetup();toast('Loaded the BB24 demo cast.')};$('saveBtn').onclick=()=>{localStorage.setItem(STORAGE_KEY,JSON.stringify({state,history,pointer,liveFeeds}));toast('Season setup saved.')};$('resetBtn').onclick=()=>{state=makeState();history=[];pointer=-1;renderAll();toast('Simulator reset.')};$('exportBtn').onclick=()=>{const blob=new Blob([JSON.stringify({state,history,pointer,liveFeeds},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='BB24-simulator-save.json';a.click();URL.revokeObjectURL(a.href)};$('importInput').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const x=JSON.parse(await f.text());state=x.state||state;history=x.history||[];pointer=Number.isInteger(x.pointer)?x.pointer:-1;liveFeeds=x.liveFeeds!==false;renderAll();toast('Save imported.')}catch(err){toast('Could not import that save.')}};
+  $('simulateBtn').onclick=simulate;$('resimulateBtn').onclick=simulate;$('previousBtn').onclick=()=>{if(pointer>0){pointer--;renderAll()}};$('nextBtn').onclick=()=>{if(pointer<history.length-1){pointer++;renderAll()}};$('revealSeasonBtn').onclick=()=>{pointer=history.length-1;renderAll()};$('revealWeekBtn').onclick=()=>{if(pointer<0){pointer=0}else{const current=history[pointer]?.week;const next=history.findIndex((e,i)=>i>pointer&&String(e.week)!==String(current));pointer=next<0?history.length-1:next-1}renderAll()};$('backToSetupBtn').onclick=()=>{$('seasonView').classList.add('hidden');$('setupView').classList.remove('hidden')};$('saveBtn').onclick=()=>{localStorage.setItem(STORAGE_KEY,JSON.stringify({state,history,pointer,liveFeeds}));toast('Season setup saved.')};$('resetBtn').onclick=()=>{state=makeState();history=[];pointer=-1;renderAll();toast('Simulator reset.')};$('exportBtn').onclick=()=>{const blob=new Blob([JSON.stringify({state,history,pointer,liveFeeds},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='BB24-simulator-save.json';a.click();URL.revokeObjectURL(a.href)};$('importInput').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const x=JSON.parse(await f.text());state=x.state||state;history=x.history||[];pointer=Number.isInteger(x.pointer)?x.pointer:-1;liveFeeds=x.liveFeeds!==false;renderAll();toast('Save imported.')}catch(err){toast('Could not import that save.')}};
   $('liveFeedsToggle').onclick=()=>{liveFeeds=!liveFeeds;$('liveFeedsToggle').textContent=`Live Feeds: ${liveFeeds?'ON':'OFF'}`;$('liveFeedsToggle').classList.toggle('off',!liveFeeds)};
   $('castGrid').addEventListener('input',e=>{const id=e.target.dataset.id,h=state.houseguests.find(x=>x.id===id);if(!h)return;if(e.target.dataset.field)h[e.target.dataset.field]=e.target.value;if(e.target.dataset.rating)h.ratings[e.target.dataset.rating]=Number(e.target.value);if(e.target.dataset.rating){const label=e.target.closest('label')?.querySelector('.rating-label span');if(label)label.textContent=e.target.value;}if(e.target.dataset.field && e.target.dataset.field==='nickname'){const title=e.target.closest('.cast-body')?.querySelector('.cast-name');if(title)title.textContent=displayName(h);}});
   $('castGrid').addEventListener('change',e=>{
