@@ -13,11 +13,11 @@ window.BB24_CONFIG = {
     {
       id: 'backstage-boss',
       name: 'Backstage Boss',
-      active: false,
-      cancelled: true,
+      active: true,
+      cancelled: false,
       weeks: [1],
-      description: 'Originally planned for Week 1. The twist was cancelled after Paloma Aguilar left the game; no Backstage eviction took place.',
-      mechanics: ['The Backstage Boss would have been safe and unable to compete.', 'The Backstage Boss would have selected three Backstage Pass recipients.', 'The planned first eviction mechanism was cancelled after Paloma Aguilar left the game.']
+      description: 'A Backstage Boss selects three Houseguests to be Backstage for Week 1. The three Backstage Houseguests cannot compete in competitions or vote, but remain eligible for eviction. One of the three always self-evicts before the planned eviction mechanism can occur.',
+      mechanics: ['A Backstage Boss is selected at the start of Week 1.', 'The Backstage Boss selects three Houseguests for the Backstage.', 'The three Backstage Houseguests cannot compete in competitions or vote.', 'The three Backstage Houseguests cannot be nominated, but remain eligible to leave through the Backstage eviction mechanism.', 'One of the three Backstage Houseguests always self-evicts during Week 1.', 'The twist is shown and played as an active twist, but its planned eviction mechanism never occurs because of the self-eviction.']
     },
     {
       id: 'festie-besties',
@@ -62,20 +62,7 @@ window.BB24_CONFIG = {
   }
 };
 
-window.BB24_HOUSEGUESTS = [
-  ['Daniel','Durston','Daniel'], ['Alyssa','Snider','Alyssa'], ['Ameerah','Jones','Ameerah'],
-  ['Brittany','Hoopes','Brittany'], ['Indy','Santos','Indy'], ['Jasmine','Davis','Jasmine'],
-  ['Joe','Pooch','Pooch'], ['Joseph','Abdin','Joseph'], ['Kyle','Capener','Kyle'],
-  ['Michael','Bruner','Michael'], ['Monte','Taylor','Monte'], ['Nicole','Layog','Nicole'],
-  ['Paloma','Aguilar','Paloma'], ['Taylor','Hale','Taylor'], ['Terrance','Higgins','Terrance'],
-  ['Turner','McDonald','Turner']
-].map(([firstName,lastName,nickname], i) => ({
-  id: `bb24-${i+1}`,
-  firstName, lastName, nickname,
-  imageUrl: '',
-  status: 'Active',
-  stats: { physical: 5, mental: 5, social: 5, strategy: 5 },
-  relationships: {},
-  alliances: [],
-  bestieGroup: null
+window.BB24_HOUSEGUESTS = Array.from({length:16}, (_, i) => ({
+  id: `bb24-${i+1}`, firstName: '', lastName: '', nickname: '', gender: '', imageUrl: '', portraitUrl: '',
+  status: 'Active', stats: { physical: 5, mental: 5, social: 5, strategy: 5 }, relationships: {}, alliances: [], bestieGroup: null
 }));
