@@ -27,7 +27,11 @@
   const card=(h,role='',full=false)=>h?`<div class="player-card"><div class="portrait-box">${portrait(h)}</div><strong>${esc(full?name(h):displayName(h))}</strong>${role?`<span>${esc(role)}</span>`:''}</div>`:'';
 
   function makeState(){
-    const houseguests=DEMO.map((p,i)=>({...p,id:p.id||`bb24-${i+1}`,slot:i+1,active:true,evicted:false,juryMember:false,placement:null,ratings:{general:50,physical:50,mental:50,social:50,strategic:50},relationships:{}}));
+    const demoGender = {
+      'Daniel':'Male','Alyssa':'Female','Ameerah':'Female','Brittany':'Female','Indy':'Female','Jasmine':'Female',
+      'Joe':'Male','Joseph':'Male','Kyle':'Male','Michael':'Male','Monte':'Male','Nicole':'Female','Paloma':'Female','Taylor':'Female','Terrance':'Male','Turner':'Male'
+    };
+    const houseguests=DEMO.map((p,i)=>({...p,id:p.id||`bb24-${i+1}`,slot:i+1,gender:p.gender||demoGender[p.firstName]||'',active:true,evicted:false,juryMember:false,placement:null,ratings:{general:50,physical:50,mental:50,social:50,strategic:50},relationships:{},portraitUrl:p.portraitUrl||p.imageUrl||''}));
     const relationships={};
     houseguests.forEach(a=>{relationships[a.id]={};houseguests.forEach(b=>{if(a.id!==b.id)relationships[a.id][b.id]={friendship:50,trust:50,loyalty:50,rivalry:0,respect:50,attraction:0,type:'Unspecified',note:''}})});
     return {season:{name:'Big Brother 24 — Custom Cast',themeUrl:'',logoUrl:'',liveFeedsEnabled:true,liveFeedProfile:{}},houseguests,relationships,alliances:[],currentWeek:1,currentHOH:null,nominees:[],povPlayers:[],povWinner:null,evictionVotes:[],jury:[],evicted:[],finale:null,finished:false};
@@ -109,7 +113,7 @@
       if(saved&&replacement){state.nominees=[...nominees.filter(h=>h.id!==saved.id),replacement].map(h=>h.id);}
       logEvent({week,phase:'veto',type:'veto-ceremony',title:'Veto Ceremony',hohId:hoh.id,winnerId:pv.id,nomineeIds:nominees.map(h=>h.id),finalNomineeIds:state.nominees,vetoUsed:!!saved,lines:[saved?`${displayName(pv)} uses the Veto on ${displayName(saved)} and a replacement nominee is named.`:'The Power of Veto is not used.']});
       const pal=state.houseguests.find(h=>displayName(h)==='Paloma');
-      if(pal&&pal.active){pal.active=false;pal.evicted=true;pal.placement=16;state.evicted.push(pal.id);logEvent({week,phase:'eviction',type:'eviction',title:'Paloma Leaves the Game',evictedId:pal.id,nomineeIds:state.nominees,evictedVoteCount:0,stayVoteCount:0,lines:['Paloma Aguilar leaves the Big Brother house. The planned Week 1 eviction is cancelled.']});}
+      if(pal&&pal.active){pal.active=false;pal.evicted=true;pal.placement=16;state.evicted.push(pal.id);logEvent({week,phase:'eviction',type:'self-eviction',title:'Paloma Leaves the Game',evictedId:pal.id,selfEviction:true,nomineeIds:state.nominees,evictedVoteCount:null,stayVoteCount:null,lines:['Paloma Aguilar self-evicts from the Big Brother house. The planned Week 1 eviction is cancelled.']});}
       return;
     }
 
@@ -212,7 +216,7 @@
     else if(e.type==='veto'){body+=`<div class="hero-players veto-winner-only">${card(byId(view,d.winnerId),'POV WINNER')}</div>`}
     else if(e.type==='veto-ceremony'){const hoh=byId(view,d.hohId),holder=byId(view,d.winnerId),ns=(d.finalNomineeIds||d.nomineeIds||[]).map(id=>byId(view,id)).filter(Boolean);body+=`<div class="ceremony-layout"><div class="ceremony-role-section"><div class="ceremony-label">HEAD OF HOUSEHOLD</div><div class="ceremony-hoh">${card(hoh,'HOH')}</div></div><div class="ceremony-arrow">▼</div><div class="ceremony-role-section"><div class="ceremony-label">NOMINEES</div><div class="ceremony-players">${ns.map(h=>card(h,'NOMINEE')).join('')}</div></div><div class="ceremony-arrow">▼</div><div class="ceremony-role-section"><div class="ceremony-label">POV HOLDER</div><div class="ceremony-players">${card(holder,'POV HOLDER')}</div></div><div class="ceremony-arrow">▼</div><div class="ceremony-role-section"><div class="ceremony-label">FINAL NOMINEES</div><div class="ceremony-players">${ns.map(h=>card(h,'NOMINEE')).join('')}</div></div></div>`}
     else if(e.type==='eviction-voting'){body+=`<div class="vote-list">${(d.votes||[]).map(v=>{const a=byId(view,v.voterId),t=byId(view,v.targetId);return `<div class="vote-row"><div class="vote-person">${portrait(a,'vote-portrait')}<strong>${esc(displayName(a))}</strong></div><div class="vote-arrow">VOTES TO EVICT</div><div class="vote-person target">${portrait(t,'vote-portrait')}<strong>${esc(displayName(t))}</strong></div></div>`}).join('')}</div>`}
-    else if(e.type==='eviction'||e.type==='final-decision'){const h=byId(view,d.evictedId);body+=`<div class="eviction-result">${card(h,'EVICTED')}<div class="eviction-vote-count">${e.type==='eviction'?`By a vote of <strong>${d.evictedVoteCount||0} to ${d.stayVoteCount||0}</strong>, ${esc(displayName(h))} is evicted.`:`${esc(displayName(byId(view,d.winnerId)))} makes the Final 2 decision and evicts ${esc(displayName(h))}.`}</div></div>`}
+    else if(e.type==='eviction'||e.type==='self-eviction'||e.type==='final-decision'){const h=byId(view,d.evictedId);const selfEvict=e.type==='self-eviction'||d.selfEviction;body+=`<div class="eviction-result">${card(h,selfEvict?'LEFT THE GAME':'EVICTED')}<div class="eviction-vote-count">${selfEvict?`${esc(displayName(h))} self-evicted from the Big Brother house.`:e.type==='eviction'?`By a vote of <strong>${d.evictedVoteCount||0} to ${d.stayVoteCount||0}</strong>, ${esc(displayName(h))} is evicted.`:`${esc(displayName(byId(view,d.winnerId)))} makes the Final 2 decision and evicts ${esc(displayName(h))}.`}</div></div>`}
     else if(e.type==='jury-vote'){body=juryVoteScreen(e,view)}
     else if(e.type.startsWith('final-hoh')){body+=`<div class="hero-players">${(d.participants||[]).map(id=>card(byId(view,id),id===d.winnerId?'WINNER':'')).join('')}</div>`}
     else {const players=(d.participants||[]).map(id=>byId(view,id)).filter(Boolean);if(players.length)body+=`<div class="hero-players">${players.map(h=>card(h,h.id===d.winnerId?'WINNER':'')).join('')}</div>`}
@@ -228,7 +232,32 @@
   function renderSummary(){const cards=[];for(let w=1;w<=11;w++){const es=history.filter(e=>String(e.week)===String(w));if(!es.length)continue;const hoh=es.find(e=>e.type==='hoh'),nom=es.find(e=>e.type==='nominations'),veto=es.find(e=>e.type==='veto'),ev=es.find(e=>e.type==='eviction');cards.push(`<article class="weekly-summary-card"><h3>Week ${w}</h3><div class="weekly-summary-rows"><div><strong>HOH Winner</strong><span>${esc(displayName(byId(null,hoh?.winnerId)))}</span></div><div><strong>Initial Nominees</strong><span>${(nom?.nomineeIds||[]).map(id=>displayName(byId(null,id))).join(' & ')||'—'}</span></div><div><strong>PoV Winner</strong><span>${esc(displayName(byId(null,veto?.winnerId)))}</span></div><div><strong>Evicted</strong><span>${esc(displayName(byId(null,ev?.evictedId)))||'No eviction'}</span></div></div></article>`)}$('tabContent').innerHTML=`<div class="weekly-summary-list">${cards.join('')}</div>`}
   function renderAlliances(){if(!state.alliances.length){$('tabContent').innerHTML='<div class="tab-panel"><h2>Alliances</h2><p>No custom alliances were entered before the simulation.</p></div>';return}$('tabContent').innerHTML=`<div class="tab-panel"><h2>Alliances</h2>${state.alliances.map(a=>`<div class="alliance-card"><div class="alliance-heading"><h3>${esc(a.name)}</h3><small>${esc(a.type||'Custom')}</small></div><div class="alliance-members">${a.members.map(id=>card(byId(null,id),'MEMBER')).join('')}</div></div>`).join('')}</div>`}
   function renderTab(){document.querySelectorAll('.view-tabs button').forEach(b=>b.classList.toggle('active',b.dataset.tab===activeTab));const sim=document.querySelector('.sim-layout');if(activeTab==='stats'){sim.classList.add('results-mode');$('tabContent').classList.remove('hidden');renderResults()}else{sim.classList.remove('results-mode');if(activeTab==='weekly-summary'){renderSummary();$('tabContent').classList.remove('hidden')}else if(activeTab==='alliances'){renderAlliances();$('tabContent').classList.remove('hidden')}else{$('tabContent').classList.add('hidden')}}}
-  function renderCast(){const hs=state.houseguests;$('castGrid').innerHTML=hs.map((h,i)=>`<article class="cast-card"><div class="setup-portrait">${portrait(h,'setup-img')}</div><div class="cast-body"><div class="cast-number">HOUSEGUEST ${i+1}</div><div class="cast-name">${esc(displayName(h))}</div><label>First Name<input data-field="firstName" data-id="${h.id}" value="${esc(h.firstName)}"></label><label>Last Name<input data-field="lastName" data-id="${h.id}" value="${esc(h.lastName)}"></label><label>Nickname<input data-field="nickname" data-id="${h.id}" value="${esc(h.nickname||'')}"></label><label>Portrait URL<input data-field="portraitUrl" data-id="${h.id}" value="${esc(h.portraitUrl||'')}"></label><div class="rating-grid">${['physical','mental','social','strategic'].map(k=>`<label><span class="rating-label">${k}<span>${h.ratings[k]||50}</span></span><input type="range" min="1" max="100" data-rating="${k}" data-id="${h.id}" value="${h.ratings[k]||50}"></label>`).join('')}</div></div></article>`).join('')}
+  function renderCast(){
+    const hs=state.houseguests;
+    $('castGrid').innerHTML=hs.map((h,i)=>`<article class="cast-card">
+      <div class="setup-portrait">${portrait(h,'setup-img')}</div>
+      <div class="cast-body">
+        <div class="cast-number">HOUSEGUEST ${i+1}</div>
+        <div class="cast-name">${esc(displayName(h))}</div>
+        <label>First Name<input data-field="firstName" data-id="${h.id}" value="${esc(h.firstName)}"></label>
+        <label>Last Name<input data-field="lastName" data-id="${h.id}" value="${esc(h.lastName)}"></label>
+        <label>Nickname<input data-field="nickname" data-id="${h.id}" value="${esc(h.nickname||'')}"></label>
+        <label>Gender<select data-field="gender" data-id="${h.id}">
+          <option value="" ${!h.gender?'selected':''}>Select Gender</option>
+          <option value="Male" ${h.gender==='Male'?'selected':''}>Male</option>
+          <option value="Female" ${h.gender==='Female'?'selected':''}>Female</option>
+          <option value="Non-binary" ${h.gender==='Non-binary'?'selected':''}>Non-binary</option>
+        </select></label>
+        <label>Portrait URL<input data-field="portraitUrl" data-id="${h.id}" value="${esc(h.portraitUrl||'')}"></label>
+        <div class="portrait-tools">
+          <label class="upload-portrait">Upload Photo<input type="file" accept="image/*" data-upload-portrait="${h.id}"></label>
+          ${h.portraitUrl?'<button type="button" class="clear-portrait" data-clear-portrait="'+h.id+'">Clear Photo</button>':''}
+        </div>
+        <div class="portrait-help">Upload a photo from your computer or paste an image URL above.</div>
+        <div class="rating-grid">${['physical','mental','social','strategic'].map(k=>`<label><span class="rating-label">${k}<span>${h.ratings[k]||50}</span></span><input type="range" min="1" max="100" data-rating="${k}" data-id="${h.id}" value="${h.ratings[k]||50}"></label>`).join('')}</div>
+      </div>
+    </article>`).join('');
+  }
   function renderTeams(){const groups=[['BroChella','Week 7 split-house side'],['Dyre Fest','Week 7 split-house side'],['Festie Besties','Weeks 3–5'],['Backstage Boss','Week 1 — cancelled']];$('teamsGrid').innerHTML=groups.map(g=>`<section class="team"><h3>${esc(g[0])}</h3><p>${esc(g[1])}</p></section>`).join('')}
   function renderTwists(){const el=$('twistsGrid');if(!el)return;el.innerHTML=CONFIG.twists.map(t=>`<article class="twist-card ${t.cancelled?'cancelled':''}"><div class="twist-card-top"><span>${t.cancelled?'CANCELLED':'ACTIVE'}</span><small>WEEK${t.weeks.length>1?'S':''} ${t.weeks.join(', ')}</small></div><h3>${esc(t.name)}</h3><p>${esc(t.description)}</p>${t.mechanics?`<ul>${t.mechanics.map(m=>`<li>${esc(m)}</li>`).join('')}</ul>`:''}</article>`).join('')}
   function renderSocial(){const opts=state.houseguests.map(h=>`<option value="${h.id}">${esc(displayName(h))}</option>`).join('');$('relationshipsGrid').innerHTML=`<div class="relationship-editor"><div class="relationship-selects"><label>From<select id="relFrom">${opts}</select></label><label>To<select id="relTo">${opts}</select></label></div><div class="relationship-sliders">${['friendship','trust','loyalty','rivalry','respect','attraction'].map(k=>`<label><span>${k}<b id="rel-${k}-value">50</b></span><input id="rel-${k}" type="range" min="0" max="100" value="50"></label>`).join('')}</div><button id="saveRelationship" class="primary">Save Relationship</button><p class="relationship-help">Relationships are directional, so A → B can differ from B → A.</p></div>`;
@@ -245,7 +274,33 @@
   });
   $('simulateBtn').onclick=simulate;$('resimulateBtn').onclick=simulate;$('previousBtn').onclick=()=>{if(pointer>0){pointer--;renderAll()}};$('nextBtn').onclick=()=>{if(pointer<history.length-1){pointer++;renderAll()}};$('revealSeasonBtn').onclick=()=>{pointer=history.length-1;renderAll()};$('revealWeekBtn').onclick=()=>{if(pointer<0){pointer=0}else{const current=history[pointer]?.week;const next=history.findIndex((e,i)=>i>pointer&&String(e.week)!==String(current));pointer=next<0?history.length-1:next-1}renderAll()};$('backToSetupBtn').onclick=()=>{$('seasonView').classList.add('hidden');$('setupView').classList.remove('hidden')};$('loadDemoBtn').onclick=()=>{state=makeState();renderSetup();toast('Loaded the BB24 demo cast.')};$('saveBtn').onclick=()=>{localStorage.setItem(STORAGE_KEY,JSON.stringify({state,history,pointer,liveFeeds}));toast('Season setup saved.')};$('resetBtn').onclick=()=>{state=makeState();history=[];pointer=-1;renderAll();toast('Simulator reset.')};$('exportBtn').onclick=()=>{const blob=new Blob([JSON.stringify({state,history,pointer,liveFeeds},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='BB24-simulator-save.json';a.click();URL.revokeObjectURL(a.href)};$('importInput').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const x=JSON.parse(await f.text());state=x.state||state;history=x.history||[];pointer=Number.isInteger(x.pointer)?x.pointer:-1;liveFeeds=x.liveFeeds!==false;renderAll();toast('Save imported.')}catch(err){toast('Could not import that save.')}};
   $('liveFeedsToggle').onclick=()=>{liveFeeds=!liveFeeds;$('liveFeedsToggle').textContent=`Live Feeds: ${liveFeeds?'ON':'OFF'}`;$('liveFeedsToggle').classList.toggle('off',!liveFeeds)};
-  $('castGrid').addEventListener('input',e=>{const id=e.target.dataset.id,h=state.houseguests.find(x=>x.id===id);if(!h)return;if(e.target.dataset.field)h[e.target.dataset.field]=e.target.value;if(e.target.dataset.rating)h.ratings[e.target.dataset.rating]=Number(e.target.value);if(e.target.dataset.field||e.target.dataset.rating)renderCast()});
+  $('castGrid').addEventListener('input',e=>{const id=e.target.dataset.id,h=state.houseguests.find(x=>x.id===id);if(!h)return;if(e.target.dataset.field)h[e.target.dataset.field]=e.target.value;if(e.target.dataset.rating)h.ratings[e.target.dataset.rating]=Number(e.target.value);if(e.target.dataset.rating){const label=e.target.closest('label')?.querySelector('.rating-label span');if(label)label.textContent=e.target.value;}if(e.target.dataset.field && e.target.dataset.field==='nickname'){const title=e.target.closest('.cast-body')?.querySelector('.cast-name');if(title)title.textContent=displayName(h);}});
+  $('castGrid').addEventListener('change',e=>{
+    const id=e.target.dataset.id;
+    const h=state.houseguests.find(x=>x.id===id);
+    if(!h)return;
+    if(e.target.dataset.field){h[e.target.dataset.field]=e.target.value;renderCast();return;}
+  });
+  $('castGrid').addEventListener('change',e=>{
+    const id=e.target.dataset.uploadPortrait;
+    if(!id || !e.target.files?.[0]) return;
+    const file=e.target.files[0];
+    if(!file.type.startsWith('image/')){toast('Please choose an image file.');return;}
+    const h=state.houseguests.find(x=>x.id===id);
+    if(!h)return;
+    const reader=new FileReader();
+    reader.onload=()=>{h.portraitUrl=reader.result;renderCast();toast(`${displayName(h)} photo uploaded.`);};
+    reader.onerror=()=>toast('Could not read that photo.');
+    reader.readAsDataURL(file);
+  });
+  $('castGrid').addEventListener('click',e=>{
+    const b=e.target.closest('[data-clear-portrait]');
+    if(!b)return;
+    const h=state.houseguests.find(x=>x.id===b.dataset.clearPortrait);
+    if(!h)return;
+    h.portraitUrl='';
+    renderCast();
+  });
   document.addEventListener('click',e=>{if(e.target.id==='saveRelationship'){const a=$('relFrom').value,b=$('relTo').value;if(a===b)return;const r=state.relationships[a][b];['friendship','trust','loyalty','rivalry','respect','attraction'].forEach(k=>r[k]=Number($('rel-'+k).value));toast('Relationship saved.')}if(e.target.id==='createAlliance'){const namev=$('allianceName').value.trim();const members=[...document.querySelectorAll('.member-picker input:checked')].map(x=>x.value);if(namev&&members.length>=2){state.alliances.push({name:namev,type:$('allianceType').value,members});renderSetup();toast('Alliance created.')}}});
   renderAll();
 })();
