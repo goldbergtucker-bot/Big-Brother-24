@@ -1,174 +1,50 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Big Brother Simulator</title>
-    <link rel="stylesheet" href="style.css?v=20260907">
-    <style>
-        #allianceMembers { display:none !important; }
-        .bb-alliance-checklist { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:8px; margin:10px 0 8px; }
-        .bb-alliance-check { display:flex; align-items:center; gap:9px; padding:10px; background:#111; border:1px solid #444; border-radius:8px; cursor:pointer; }
-        .bb-alliance-check:hover { background:#1d1d1d; }
-        .bb-alliance-check input { width:auto; margin:0; cursor:pointer; }
-        .bb-alliance-empty { color:#999; padding:12px; border:1px dashed #444; border-radius:8px; }
-        .bb-active-twist-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:10px; }
-        .bb-active-twist { padding:14px; border:1px solid #333; border-radius:10px; background:#101010; }
-        .bb-active-twist.active { border-color:#fff; background:#181818; }
-        .bb-active-twist strong,.bb-active-twist span { display:block; }
-        .bb-active-twist span { margin-top:6px; font-size:12px; color:#999; }
-        .bb-active-twist.active span { color:#fff; font-weight:800; }
-
-        .status-card > div { min-height: 48px; }
-        .status-player-image { width: 44px; height: 44px; object-fit: cover; border-radius: 8px; flex: 0 0 44px; }
-        .status-player-text { display:flex; flex-direction:column; gap:4px; min-width:0; }
-        .status-player-text span { font-size:12px; opacity:.75; }
-        .status-person-inline { display:inline-flex; align-items:center; gap:7px; margin:3px 8px 3px 0; }
-        .status-person-inline span { font-weight:700; }
-        .status-none { opacity:.65; }
-        #hohStatus, #nomineesStatus, #povStatus { display:flex; align-items:center; flex-wrap:wrap; gap:8px; }
-        .skip-end-button { margin-top:10px; width:100%; }
-        .final-stage-card { margin-top:12px; }
-    </style>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Big Brother 24 — Custom Simulator</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<header class="site-header">
-    <div class="logo-area">
-        <div class="logo-main">BIG BROTHER</div>
-        <div class="logo-sub">SIMULATOR</div>
-    </div>
-    <nav class="main-nav">
-        <button onclick="showSection('home')">HOME</button>
-        <button onclick="showSection('cast')">CAST</button>
-        <button onclick="showSection('twists')">TWISTS</button>
-        <button onclick="showSection('house')">HOUSE</button>
-        <button onclick="showSection('game')">GAME</button>
-        <button onclick="showSection('memory')">MEMORY WALL</button>
-        <button onclick="showSection('jury')">JURY</button>
-        <button onclick="showSection('finale')">FINALE</button>
-    </nav>
-</header>
-
+<div class="app-shell">
+<header class="topbar"><div class="brand"><div class="brand-mark">BB</div><div><b>BIG BROTHER</b><span>24 · CUSTOM SIMULATOR</span></div></div><div class="top-actions"><button id="backToSetupBtn" class="ghost">Cast Setup</button></div></header>
 <main>
-<section id="home" class="page-section active-section">
-    <div class="hero-panel">
-        <h1>BIG BROTHER</h1><h2>SIMULATOR</h2>
-        <p>Create your own Big Brother season with custom Houseguests, relationships, alliances, twists and season formats.</p>
+<section id="setupView">
+  <div class="setup-hero"><div><span class="eyebrow">CUSTOM BRANTSTEELE-STYLE SIMULATOR · BB19 PARITY STAGE 1</span><h1>Build Your BB24 Season</h1><p>Build your custom cast, portraits, ratings, relationships and alliances — then run the full BB24 season one event at a time.</p></div><div class="hero-actions"><button id="loadDemoBtn">Load Demo Cast</button><button id="simulateBtn" class="primary">Simulate Season</button></div></div>
+  <section class="settings-panel"><h2>Season Settings</h2><div class="settings-grid"><label>Season Name<input id="seasonName"></label><label>Theme URL<input id="themeUrl" placeholder="https://..."></label><label>Logo URL<input id="logoUrl" placeholder="https://..."></label></div></section>
+  <section class="feed-setup-panel">
+    <div class="feed-setup-heading"><div><span class="eyebrow">OPTIONAL STORY MODE</span><h2>Live Feeds</h2><p>Turn on detailed Thursday-to-Thursday live feeds. When enabled, each day appears as one complete feed page rather than scattered snippets.</p></div><button id="liveFeedsToggle" type="button" class="feed-toggle" aria-pressed="true">Live Feeds: ON</button></div>
+    <div id="liveFeedPromptPanel" class="feed-prompt-panel">
+      <h3>Live Feed Story Prompt</h3><p class="muted-note">These open-response notes are carried into the daily feed generator so conversations can reflect your cast's history, relationships, personalities and recurring storylines.</p>
+      <div class="feed-prompt-grid">
+        <label>Houseguest backstories<textarea id="feedBackstories" rows="6" placeholder="Example: Tucker and Riley met in college. Include as much detail as you want."></textarea></label>
+        <label>Pre-existing relationships & history<textarea id="feedPriorRelationships" rows="6" placeholder="Who knew each other before the game? Former friends, rivals, family connections, secret pairs, old arguments, etc."></textarea></label>
+        <label>Personalities, habits & speaking styles<textarea id="feedPersonalities" rows="6" placeholder="Quiet, blunt, funny, paranoid, analytical, emotional, sarcastic, late-night talker, etc."></textarea></label>
+        <label>Conflict, romance & unresolved tension<textarea id="feedConflictsAndRomance" rows="6" placeholder="Showmances, crushes, jealousy, betrayals, rivalries, awkward history, etc."></textarea></label>
+        <label>Recurring topics, jokes & personal details<textarea id="feedRecurringTopics" rows="6" placeholder="Inside jokes, hobbies, family stories, favorite topics, routines, catchphrases, etc."></textarea></label>
+        <label>Special feed instructions<textarea id="feedInstructions" rows="6" placeholder="Anything else the daily feeds should emphasize."></textarea></label>
+      </div>
     </div>
-    <div class="panel">
-        <h2>Season Format</h2>
-        <div class="form-group">
-            <label for="seasonSelect">Choose Season Format</label>
-            <select id="seasonSelect">
-                <option value="custom">Custom Season</option>
-                <option value="bb19">Big Brother 19</option>
-                <option value="bb20" selected>Big Brother 20</option>
-                <option value="bb23">Big Brother 23</option>
-                <option value="bb24" selected>Big Brother 24</option>
-                <option value="bb25">Big Brother 25</option>
-                <option value="bb26">Big Brother 26</option>
-            </select>
-        </div>
-        <button id="selectSeasonButton" class="primary-button" onclick="selectSeasonTemplate()">SELECT SEASON</button>
-        <div id="selectedSeasonInfo" class="season-info"></div>
-    </div>
-    <div class="panel">
-        <h2>Season Controls</h2>
-        <div class="button-row">
-            <button id="startSeasonButton" class="primary-button" onclick="startNewSeason()">START NEW SEASON</button>
-            <button class="secondary-button" onclick="saveGame()">SAVE</button>
-            <button class="secondary-button" onclick="loadGame()">LOAD</button>
-            <button class="danger-button" onclick="resetGame()">RESET</button>
-        </div>
-    </div>
-    <div class="panel"><h2>Season Summary</h2><div id="seasonSummary" class="summary-grid"></div></div>
+  </section>
+  <div class="section-heading"><div><h2>Houseguests</h2><p>16 custom players · portraits · five ratings</p></div><div class="tools"><span id="validity">Cast ready</span><button id="saveBtn">Save</button><button id="exportBtn">Export</button><label class="import">Import<input id="importInput" type="file" accept="application/json"></label><button id="resetBtn" class="danger">Reset</button></div></div>
+  <div id="castGrid" class="cast-grid"></div>
+  <section class="section-heading"><div><h2>BB24 Format</h2><p>BB24 uses its actual season mechanics rather than the BB23 four-team opening.</p></div></section><div id="teamsGrid" class="teams-grid"></div>
+  <section class="section-heading"><div><h2>Starting Relationships</h2><p>Set friendship, trust, loyalty, rivalry, respect and attraction before the simulation.</p></div></section><section class="setup-social-panel"><div id="relationshipsGrid"></div></section>
+  <section class="section-heading"><div><h2>Custom Alliances</h2><p>Create alliances that exist from the start of the season. Multiple overlapping alliances are supported.</p></div></section><section class="setup-social-panel"><div id="allianceSetup"></div></section>
 </section>
-
-<section id="cast" class="page-section">
-    <div class="section-heading"><h1>HOUSEGUEST CAST</h1><p>Create and edit your Houseguests before or during your season.</p></div>
-    <div class="panel">
-        <h2 id="castEditorTitle">Add Houseguest</h2>
-        <input type="hidden" id="editingHouseguestId" value="">
-        <div class="form-section"><h3>Houseguest Identity</h3><div class="form-grid">
-            <div class="form-group"><label for="firstName">First Name</label><input id="firstName" type="text" placeholder="First name"></div>
-            <div class="form-group"><label for="lastName">Last Name</label><input id="lastName" type="text" placeholder="Last name"></div>
-            <div class="form-group"><label for="nickname">Nickname / Display Name</label><input id="nickname" type="text" placeholder="What they go by"></div>
-            <div class="form-group"><label for="imageUrl">Image URL</label><input id="imageUrl" type="text" placeholder="https://i.imgur.com/example.jpg"></div>
-        </div></div>
-        <div class="form-section"><h3>Competition Stats</h3><p class="form-help">Set each Houseguest's ability from 1 to 10.</p><div class="stats-editor">
-            <div class="stat-control"><div class="stat-header"><label for="physical">Physical</label><span id="physicalValue">5</span></div><input id="physical" type="range" min="1" max="10" value="5" oninput="updateStatValue('physical')"></div>
-            <div class="stat-control"><div class="stat-header"><label for="mental">Mental</label><span id="mentalValue">5</span></div><input id="mental" type="range" min="1" max="10" value="5" oninput="updateStatValue('mental')"></div>
-            <div class="stat-control"><div class="stat-header"><label for="social">Social</label><span id="socialValue">5</span></div><input id="social" type="range" min="1" max="10" value="5" oninput="updateStatValue('social')"></div>
-            <div class="stat-control"><div class="stat-header"><label for="strategy">Strategy</label><span id="strategyValue">5</span></div><input id="strategy" type="range" min="1" max="10" value="5" oninput="updateStatValue('strategy')"></div>
-        </div></div>
-        <div class="button-row"><button id="saveHouseguestButton" class="primary-button" onclick="saveHouseguest()">ADD HOUSEGUEST</button><button id="cancelEditButton" class="secondary-button hidden" onclick="cancelHouseguestEdit()">CANCEL EDIT</button></div>
-    </div>
-    <div class="panel"><div class="panel-title-row"><h2>Your Houseguests</h2><span id="castCount" class="count-badge">0</span></div><div id="castGrid" class="cast-grid"></div></div>
+<section id="seasonView" class="hidden">
+  <div class="season-header"><div><span class="eyebrow">SIMULATION</span><h1 id="seasonHeading">Big Brother 24</h1><p id="seasonStatusLine">READY</p></div><div class="season-controls"><button id="resimulateBtn">↻ Simulate Again</button><button id="revealWeekBtn">Reveal Week</button><button id="revealSeasonBtn" class="primary">Reveal Season</button></div></div>
+  <div class="sim-layout">
+    <aside class="left-rail"><div class="rail-title">EVENTS</div><div id="timeline"></div></aside>
+    <section class="main-stage">
+      <article id="eventPanel" class="event-panel"><div class="event-meta"><span id="eventKicker">READY TO SIMULATE</span><span id="eventCounter">0 / 0</span></div><h2 id="eventTitle">Your season is ready</h2><div id="eventBody"></div></article>
+      <div class="navigator"><button id="previousBtn">← Previous</button><button id="nextBtn" class="primary">Next →</button></div>
+      <nav class="view-tabs"><button data-tab="event" class="active">Current Event</button><button data-tab="stats">Season Results</button><button data-tab="weekly-summary">Weekly Summary</button><button data-tab="alliances">Alliances</button></nav>
+      <div id="tabContent" class="tab-content hidden"></div>
+    </section>
+    <aside class="right-rail"><div class="rail-title">MEMORY WALL</div><div id="memoryWall"></div></aside>
+  </div>
 </section>
-
-<section id="twists" class="page-section">
-    <div class="section-heading"><h1>TWISTS</h1><p>Built-in BB24 twists are shown automatically when the BB24 format is selected.</p></div>
-    <div id="bbTwistStatusPanel" class="panel"><h2>Active Season Twists</h2></div>
-    <div class="panel">
-        <h2>Create Custom Twist</h2>
-        <div class="form-grid">
-            <div class="form-group"><label for="twistName">Twist Name</label><input id="twistName" type="text" placeholder="Twist name"></div>
-            <div class="form-group full-width"><label for="twistDescription">Description</label><textarea id="twistDescription" placeholder="Describe the twist..."></textarea></div>
-        </div>
-        <button class="primary-button" onclick="createTwist()">ADD TWIST</button>
-    </div>
-    <div id="twistList" class="twist-list"></div>
-</section>
-
-<section id="house" class="page-section">
-    <div class="section-heading"><h1>HOUSE RELATIONSHIPS</h1><p>Build the social structure of your season.</p></div>
-    <div class="panel">
-        <h2>Create Alliance</h2>
-        <div class="form-group"><label for="allianceName">Alliance Name</label><input id="allianceName" type="text" placeholder="The Level 6"></div>
-        <div class="form-group"><label for="allianceMembers">Members</label><select id="allianceMembers" multiple size="8"></select><div class="form-help">Check the Houseguests below to add them to the alliance.</div></div>
-        <div class="form-group"><label for="allianceStrength">Alliance Strength</label><select id="allianceStrength"><option value="casual">Casual</option><option value="weak">Weak</option><option value="moderate" selected>Moderate</option><option value="strong">Strong</option><option value="unbreakable">Unbreakable</option></select></div>
-        <button class="primary-button" onclick="createAlliance()">CREATE ALLIANCE</button>
-    </div>
-    <div id="allianceList" class="alliance-list"></div>
-
-    <div class="panel">
-        <h2>Houseguest Relationships</h2>
-        <p class="form-help">Relationships are directional: A liking B does not automatically mean B likes A.</p>
-        <div class="relationship-editor">
-            <div class="relationship-person"><label for="relationshipFrom">Houseguest</label><select id="relationshipFrom"></select><div id="relationshipFromPreview" class="relationship-preview"></div></div>
-            <div class="relationship-arrow">→</div>
-            <div class="relationship-person"><label for="relationshipTo">Other Houseguest</label><select id="relationshipTo"></select><div id="relationshipToPreview" class="relationship-preview"></div></div>
-        </div>
-        <div class="form-group"><label for="relationshipType">Relationship</label><select id="relationshipType"><option value="love">❤️ Love</option><option value="like">😊 Like</option><option value="neutral" selected>😐 Neutral</option><option value="dislike">😒 Dislike</option><option value="hate">😡 Hate</option></select></div>
-        <div class="form-group"><label for="relationshipNote">Optional Note</label><input id="relationshipNote" type="text" placeholder="Best friends, former enemies, etc."></div>
-        <div class="button-row"><button class="primary-button" onclick="saveRelationship()">SAVE RELATIONSHIP</button><button class="secondary-button" onclick="loadSelectedRelationship()">LOAD EXISTING</button><button class="danger-button" onclick="deleteSelectedRelationship()">REMOVE RELATIONSHIP</button></div>
-    </div>
-    <div class="panel"><h2>Relationship Map</h2><div id="relationshipsList" class="relationships-list"></div></div>
-</section>
-
-<section id="game" class="page-section">
-    <div class="game-header"><div><div id="weekBadge" class="week-badge">WEEK 1</div><h1 id="weekTitle">Week 1</h1><h2 id="stageTitle">Ready</h2></div></div>
-    <div class="stage-panel"><div id="stageIcon" class="stage-icon">★</div><div><h2 id="stageName">Ready</h2><p id="stageDescription">Start the season to begin.</p></div></div>
-    <div class="status-grid">
-        <div class="status-card"><h3>HOH</h3><div id="hohStatus">None</div></div>
-        <div class="status-card"><h3>NOMINEES</h3><div id="nomineesStatus">None</div></div>
-        <div class="status-card"><h3>POWER OF VETO</h3><div id="povStatus">None</div></div>
-        <div class="status-card"><h3>FORMAT</h3><div id="formatStatus">Normal Week</div></div>
-    </div>
-    <div class="panel proceed-panel">
-        <button id="proceedButton" class="proceed-button" onclick="proceedGame()">PROCEED</button>
-        <button id="skipEndButton" class="secondary-button skip-end-button" onclick="skipToEnd()">SIMULATE TO END</button>
-    </div>
-    <div class="panel"><h2>Houseguests</h2><div id="gameHouseguests" class="game-houseguest-grid"></div></div>
-    <div class="panel"><h2>Event Log</h2><div id="eventLog" class="event-log"></div></div>
-    <div id="evictionResults" class="panel hidden"></div>
-</section>
-
-<section id="memory" class="page-section"><div class="section-heading"><h1>MEMORY WALL</h1><p>Active Houseguests remain in full color. Evicted Houseguests become dimmed and grayscale.</p></div><div id="memoryWall" class="memory-wall"></div></section>
-<section id="jury" class="page-section"><div class="section-heading"><h1>JURY</h1></div><div class="panel"><h2>Jury Members</h2><div id="juryList" class="jury-grid"></div></div><div class="panel"><h2>Evicted Houseguests</h2><div id="evictedPlayers" class="jury-grid"></div></div></section>
-<section id="finale" class="page-section"><div class="section-heading"><h1>FINALE</h1></div><div id="finaleContent" class="finale-content"></div></section>
-</main>
-
-<script type="module" src="app.js?v=20260916-bb24-modular"></script>
-</body>
-</html>
+</main><div id="toast" class="toast"></div>
+<script src="data/bb24-config.js"></script><script src="engine/game-state.js"></script><script src="engine/competitions.js"></script><script src="engine/relationships.js"></script><script src="engine/season-engine.js"></script><script src="engine/live-feeds.js"></script><script src="app.js"></script>
+</div></body></html>
