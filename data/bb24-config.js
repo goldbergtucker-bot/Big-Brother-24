@@ -1,10 +1,10 @@
-export const BB24_CONFIG = {
+window.BB24_CONFIG = {
   id: 'bb24',
   name: 'Big Brother 24',
   theme: 'Summer Festival',
   startingPlayers: 16,
   jurySize: 9,
-  juryStartAfterEvictions: 7,
+  juryStartAfterEvictions: 5,
   nominationCount: 2,
   finaleFinalists: 3,
   seasonStart: '2022-07-06',
@@ -49,7 +49,7 @@ export const BB24_CONFIG = {
     5: { format: 'festie-besties', hoh: 'Mind Your Step', pov: 'OTEV the Singing Stageroach', eviction: true },
     6: { format: 'normal', hoh: 'Conspiracy Fest', pov: 'Punkaroo', eviction: true },
     7: { format: 'split-house', hoh: 'Do You See The VIP?', pov: { bigBroChella: 'Pride Slide', dyreFest: 'Lunch is Served' }, eviction: true, doubleEviction: true },
-    8: { format: 'normal', hoh: 'Carni-Small', pov: 'Pride Slide', eviction: true },
+    8: { format: 'normal', hoh: 'Carni-Small', pov: 'One, Two, Three, VIP', eviction: true },
     9: { format: 'normal', hoh: 'Burning Bot', pov: 'BB Comics', eviction: true },
     '9.5': { format: 'double-eviction', hoh: 'Laser Focus', pov: 'Amp It Up', eviction: true },
     10: { format: 'normal', hoh: 'Horror Fest Lockdown', pov: 'Snooze Fest', eviction: true },
@@ -59,7 +59,7 @@ export const BB24_CONFIG = {
   }
 };
 
-export const BB24_HOUSEGUESTS = [
+window.BB24_HOUSEGUESTS = [
   ['Daniel','Durston','Daniel'], ['Alyssa','Snider','Alyssa'], ['Ameerah','Jones','Ameerah'],
   ['Brittany','Hoopes','Brittany'], ['Indy','Santos','Indy'], ['Jasmine','Davis','Jasmine'],
   ['Joe','Pooch','Pooch'], ['Joseph','Abdin','Joseph'], ['Kyle','Capener','Kyle'],
