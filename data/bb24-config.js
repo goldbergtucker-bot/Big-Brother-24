@@ -16,21 +16,24 @@ window.BB24_CONFIG = {
       active: false,
       cancelled: true,
       weeks: [1],
-      description: 'Originally planned for Week 1. The twist was cancelled after Paloma Aguilar left the game; no Backstage eviction took place.'
+      description: 'Originally planned for Week 1. The twist was cancelled after Paloma Aguilar left the game; no Backstage eviction took place.',
+      mechanics: ['The Backstage Boss would have been safe and unable to compete.', 'The Backstage Boss would have selected three Backstage Pass recipients.', 'The planned first eviction mechanism was cancelled after Paloma Aguilar left the game.']
     },
     {
       id: 'festie-besties',
       name: 'Festie Besties',
       active: true,
       weeks: [3, 4, 5],
-      description: 'Houseguests are paired into Bestie groups. Nominations are made by group, and veto results apply to the nominated group.'
+      description: 'Houseguests are paired into Bestie groups. Nominations and veto safety are tied to the Bestie group while the twist is active.',
+      mechanics: ['The Week 3 HOH competition creates the Bestie groups.', 'The HOH nominates a Bestie group rather than two unrelated individuals.', 'A Bestie group nominated together competes together for veto safety.', 'If a partner leaves, the surviving Houseguest can join another group, creating a trio.', 'If a trio or larger group is nominated, all members are on the block and participate in the veto.']
     },
     {
       id: 'split-house',
       name: 'Split House Double Eviction',
       active: true,
       weeks: [7],
-      description: 'The house splits into Big BroChella and Dyre Fest. Each side has its own HOH, nominations, veto and eviction.'
+      description: 'The house splits into Big BroChella and Dyre Fest. Each side is isolated and plays its own HOH, nominations, Power of Veto and eviction.',
+      mechanics: ['The final 10 are divided into two groups of five.', 'Big BroChella remains inside while Dyre Fest is isolated in the backyard.', 'The groups cannot communicate during the split.', 'Each side has its own HOH, two nominees, POV and eviction.', 'Two Houseguests are evicted during the same Double Eviction week.', 'The two groups reunite after the simultaneous evictions.']
     }
   ],
   besties: {
