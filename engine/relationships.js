@@ -154,7 +154,16 @@
    */
   function planBackdoor(state, hoh, nominees) {
     const nomineeIds = new Set(nominees.map(n => n.id));
-    const candidates = livingHouseguests(state).filter(hg => hg.id !== hoh.id && !nomineeIds.has(hg.id) && !hg.safe);
+    const backstageIds = new Set([
+      ...(state.backstage?.passIds || []),
+      ...(state.backstage?.bossId ? [state.backstage.bossId] : [])
+    ]);
+    const candidates = livingHouseguests(state).filter(hg =>
+      hg.id !== hoh.id &&
+      !nomineeIds.has(hg.id) &&
+      !hg.safe &&
+      !backstageIds.has(hg.id)
+    );
     if (!candidates.length) return { use: false, target: null, reason: "No eligible backdoor target" };
 
     const ranked = candidates.map(target => {
