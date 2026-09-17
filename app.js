@@ -262,10 +262,12 @@
   function simulate(){state=makeState();nextPlacement=16;state.season.name=$('seasonName').value.trim()||'Big Brother 24 — Custom Cast';state.season.themeUrl=$('themeUrl').value.trim();state.season.logoUrl=$('logoUrl').value.trim();state.season.liveFeedsEnabled=liveFeeds;history=[];pointer=-1;
     // Week 1 is the cancelled-eviction premiere; Paloma's departure is recorded separately.
     regularWeek(1); regularWeek(2); regularWeek(3); regularWeek(4); regularWeek(5); regularWeek(6); splitWeek(); regularWeek(8); regularWeek(9); regularWeek('9.5'); regularWeek(10); regularWeek(11);
-    // Final 4 / finale. Ensure three finalists remain.
-    const f4=living(state); state.currentWeek=12; const hoh=choose(f4,'mental'); state.currentHOH=hoh.id;logEvent({week:12,phase:'final-four',type:'hoh',title:`${displayName(hoh)} Wins Final 4 HOH`,winnerId:hoh.id,participants:f4.map(h=>h.id),competition:comp(12,'hoh'),lines:[`${displayName(hoh)} wins the final regular-season HOH.`]});
-    const last=f4.find(h=>h.id!==hoh.id); if(last){setEviction(last,[]);logEvent({week:12,phase:'final-four',type:'eviction',title:`${displayName(last)} Is Evicted`,evictedId:last.id,evictedVoteCount:0,stayVoteCount:0,lines:[`${displayName(last)} is the final juror and leaves the house.`]});}
-    const finalists=living(state); state.currentWeek='Final'; const p1=choose(finalists,'physical');logEvent({week:'Final',phase:'finale',type:'final-hoh-1',title:'Final HOH Part 1',winnerId:p1.id,participants:finalists.map(h=>h.id),competition:comp('Final','final-hoh-1'),lines:[`${displayName(p1)} wins Final HOH Part 1.`]});const rem=finalists.filter(h=>h.id!==p1.id);const p2=choose(rem,'mental');logEvent({week:'Final',phase:'finale',type:'final-hoh-2',title:'Final HOH Part 2',winnerId:p2.id,participants:rem.map(h=>h.id),competition:comp('Final','final-hoh-2'),lines:[`${displayName(p2)} wins Final HOH Part 2.`]});const p3=choose(finalists,'mental');logEvent({week:'Final',phase:'finale',type:'final-hoh-3',title:'Final HOH Part 3',winnerId:p3.id,participants:finalists.map(h=>h.id),competition:comp('Final','final-hoh-3'),lines:[`${displayName(p3)} wins Final HOH Part 3 and becomes the Final HOH.`]});
+    // After Week 11, BB24 is at the Final 3. The finale begins here; there is
+    // no extra Final 4 eviction because the Week 11 eviction leaves exactly
+    // three Houseguests.
+    const finalists=living(state);
+    if(finalists.length!==3) throw new Error(`BB24 finale expected 3 finalists, found ${finalists.length}`);
+    state.currentWeek='Final'; const p1=choose(finalists,'physical');logEvent({week:'Final',phase:'finale',type:'final-hoh-1',title:'Final HOH Part 1',winnerId:p1.id,participants:finalists.map(h=>h.id),competition:comp('Final','final-hoh-1'),lines:[`${displayName(p1)} wins Final HOH Part 1.`]});const rem=finalists.filter(h=>h.id!==p1.id);const p2=choose(rem,'mental');logEvent({week:'Final',phase:'finale',type:'final-hoh-2',title:'Final HOH Part 2',winnerId:p2.id,participants:rem.map(h=>h.id),competition:comp('Final','final-hoh-2'),lines:[`${displayName(p2)} wins Final HOH Part 2.`]});const p3=choose(finalists,'mental');logEvent({week:'Final',phase:'finale',type:'final-hoh-3',title:'Final HOH Part 3',winnerId:p3.id,participants:finalists.map(h=>h.id),competition:comp('Final','final-hoh-3'),lines:[`${displayName(p3)} wins Final HOH Part 3 and becomes the Final HOH.`]});
     const third=finalists.find(h=>h.id!==p3.id); setEviction(third,[]);logEvent({week:'Final',phase:'finale',type:'final-decision',title:'Final HOH Decision',winnerId:p3.id,evictedId:third.id,finalistIds:finalists.filter(h=>h.id!==third.id).map(h=>h.id),lines:[`${displayName(p3)} evicts ${displayName(third)} and chooses the Final 2.`]});
     const final2=living(state), votes=[];state.jury.forEach(j=>{const target=choose(final2,'social');votes.push({voterId:j.id,targetId:target.id})});const tally={};votes.forEach(v=>tally[v.targetId]=(tally[v.targetId]||0)+1);const winner=final2.slice().sort((a,b)=>(tally[b.id]||0)-(tally[a.id]||0))[0], runner=final2.find(h=>h.id!==winner.id);winner.placement=1;runner.placement=2;third.placement=3;state.finale={winnerId:winner.id,runnerUpId:runner.id,thirdPlaceId:third.id,votes:tally};state.finished=true;logEvent({week:'Final',phase:'finale',type:'jury-vote',title:'Final Two — Jury Voting',finalistIds:final2.map(h=>h.id),votes,lines:[`${displayName(winner)} wins Big Brother 24 by a jury vote of ${tally[winner.id]||0} to ${tally[runner.id]||0}.`]});logEvent({week:'Final',phase:'finale',type:'winner',title:`${displayName(winner)} Wins Big Brother 24`,winnerId:winner.id,runnerUpId:runner.id,thirdPlaceId:third.id,lines:[`${displayName(winner)} is the winner of Big Brother 24.`,`${displayName(runner)} is the runner-up.`,`${displayName(third)} finishes in 3rd place.`]});
     // Assign any missing placements from eviction order, preserving Paloma as 16th.
@@ -324,9 +326,39 @@
   }
   function renderTeams(){const groups=[['BroChella','Week 7 split-house side'],['Dyre Fest','Week 7 split-house side'],['Festie Besties','Weeks 3–5 — custom pairs/trios'],['Backstage Boss','Week 1 — three selected Houseguests are restricted from competing and voting']];$('teamsGrid').innerHTML=groups.map(g=>`<section class="team"><h3>${esc(g[0])}</h3><p>${esc(g[1])}</p></section>`).join('')}
   function renderTwists(){const el=$('twistsGrid');if(!el)return;el.innerHTML=CONFIG.twists.map(t=>`<article class="twist-card ${t.cancelled?'cancelled':''}"><div class="twist-card-top"><span>${t.cancelled?'CANCELLED':'ACTIVE'}</span><small>WEEK${t.weeks.length>1?'S':''} ${t.weeks.join(', ')}</small></div><h3>${esc(t.name)}</h3><p>${esc(t.description)}</p>${t.mechanics?`<ul>${t.mechanics.map(m=>`<li>${esc(m)}</li>`).join('')}</ul>`:''}</article>`).join('')}
-  function renderSocial(){const opts=state.houseguests.map(h=>`<option value="${h.id}">${esc(displayName(h))}</option>`).join('');$('relationshipsGrid').innerHTML=`<div class="relationship-editor"><div class="relationship-selects"><label>From<select id="relFrom">${opts}</select></label><label>To<select id="relTo">${opts}</select></label></div><div class="relationship-sliders">${['friendship','trust','loyalty','rivalry','respect','attraction'].map(k=>`<label><span>${k}<b id="rel-${k}-value">50</b></span><input id="rel-${k}" type="range" min="0" max="100" value="50"></label>`).join('')}</div><button id="saveRelationship" class="primary">Save Relationship</button><p class="relationship-help">Relationships are directional, so A → B can differ from B → A.</p></div>`;
-    $('allianceSetup').innerHTML=`<div class="alliance-create"><label>Alliance Name<input id="allianceName" placeholder="Alliance name"></label><label>Type<select id="allianceType"><option>Majority Alliance</option><option>Core Alliance</option><option>Final Two</option><option>Final Three</option><option>Showmance</option><option>Custom</option></select></label><div class="member-picker">${state.houseguests.map(h=>`<label class="member-picker-card"><input type="checkbox" value="${h.id}"><span>${esc(displayName(h))}</span></label>`).join('')}</div><button id="createAlliance" class="primary">Create</button></div><div class="custom-alliance-list">${state.alliances.map((a,i)=>`<div class="setup-alliance"><strong>${esc(a.name)}</strong><span class="setup-alliance-members">${a.members.map(id=>esc(displayName(byId(null,id)))).join(', ')}</span><button class="danger-link" data-delete-alliance="${i}">Delete</button></div>`).join('')}</div>`;
+  function renderSocial(){
+    const opts=state.houseguests.map(h=>`<option value="${h.id}">${esc(displayName(h))}</option>`).join('');
+    $('relationshipsGrid').innerHTML=`
+      <div class="relationship-editor">
+        <div class="relationship-selects">
+          <label>From<select id="relFrom">${opts}</select></label>
+          <div class="relationship-person" id="relFromPerson"></div>
+          <label>To<select id="relTo">${opts}</select></label>
+          <div class="relationship-person" id="relToPerson"></div>
+        </div>
+        <div class="relationship-sliders">${['friendship','trust','loyalty','rivalry','respect','attraction'].map(k=>`<label><span>${k}<b id="rel-${k}-value">50</b></span><input id="rel-${k}" type="range" min="0" max="100" value="50"></label>`).join('')}</div>
+        <button id="saveRelationship" class="primary">Save Relationship</button>
+        <p class="relationship-help">Relationships are directional, so A → B can differ from B → A.</p>
+      </div>`;
+    $('allianceSetup').innerHTML=`
+      <div class="alliance-create">
+        <label>Alliance Name<input id="allianceName" placeholder="Alliance name"></label>
+        <label>Type<select id="allianceType"><option>Majority Alliance</option><option>Core Alliance</option><option>Final Two</option><option>Final Three</option><option>Showmance</option><option>Custom</option></select></label>
+        <div class="member-picker">${state.houseguests.map(h=>`<label class="member-picker-card"><input type="checkbox" value="${h.id}"><span class="member-picker-portrait">${portrait(h,'setup-social-portrait')}</span><span class="member-picker-info"><strong data-social-name="${h.id}">${esc(displayName(h))}</strong><small>Houseguest ${h.slot}</small></span></label>`).join('')}</div>
+        <button id="createAlliance" class="primary">Create</button>
+      </div>
+      <div class="custom-alliance-list">${state.alliances.map((a,i)=>`<div class="setup-alliance"><strong>${esc(a.name)}</strong><span class="setup-alliance-members">${a.members.map(id=>{const h=byId(null,id);return `<span class="mini-alliance-member">${portrait(h,'mini-social-portrait')}<span data-social-name="${id}">${esc(displayName(h))}</span></span>`}).join('')}</span><button class="danger-link" data-delete-alliance="${i}">Delete</button></div>`).join('')}</div>`;
+    updateRelationshipPeople();
   }
+
+  function updateRelationshipPeople(){
+    const from=$('relFrom')?.value, to=$('relTo')?.value;
+    const fh=state.houseguests.find(h=>h.id===from), th=state.houseguests.find(h=>h.id===to);
+    if($('relFromPerson')) $('relFromPerson').innerHTML=fh?`${portrait(fh,'setup-social-portrait')}<strong>${esc(displayName(fh))}</strong>`:'';
+    if($('relToPerson')) $('relToPerson').innerHTML=th?`${portrait(th,'setup-social-portrait')}<strong>${esc(displayName(th))}</strong>`:'';
+    document.querySelectorAll('[data-social-name]').forEach(el=>{const h=state.houseguests.find(x=>x.id===el.dataset.socialName);if(h)el.textContent=displayName(h);});
+  }
+
   function renderSetup(){renderCast();renderTeams();renderTwists();renderSocial();$('seasonName').value=state.season.name;$('themeUrl').value=state.season.themeUrl;$('logoUrl').value=state.season.logoUrl}
   function renderAll(){renderSetup();renderTimeline();renderEvent();renderMemory();renderTab();$('seasonHeading').textContent=state.season.name.replace(' — Custom Cast','');$('seasonStatusLine').textContent=history.length?`${history.length} EVENTS · ${pointer<0?'READY':`REVEALED ${pointer+1}`}`:'READY'}
   function toast(m){$('toast').textContent=m;$('toast').classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>$('toast').classList.remove('show'),2200)}
@@ -337,13 +369,14 @@
     const del=e.target.closest('[data-delete-alliance]');if(del){state.alliances.splice(Number(del.dataset.deleteAlliance),1);renderSetup()}
   });
   $('simulateBtn').onclick=simulate;$('resimulateBtn').onclick=simulate;$('previousBtn').onclick=()=>{if(pointer>0){pointer--;renderAll()}};$('nextBtn').onclick=()=>{if(pointer<history.length-1){pointer++;renderAll()}};$('revealSeasonBtn').onclick=()=>{pointer=history.length-1;renderAll()};$('revealWeekBtn').onclick=()=>{if(pointer<0){pointer=0}else{const current=history[pointer]?.week;const next=history.findIndex((e,i)=>i>pointer&&String(e.week)!==String(current));pointer=next<0?history.length-1:next-1}renderAll()};$('backToSetupBtn').onclick=()=>{$('seasonView').classList.add('hidden');$('setupView').classList.remove('hidden')};$('saveBtn').onclick=()=>{localStorage.setItem(STORAGE_KEY,JSON.stringify({state,history,pointer,liveFeeds}));toast('Season setup saved.')};$('resetBtn').onclick=()=>{state=makeState();history=[];pointer=-1;renderAll();toast('Simulator reset.')};$('exportBtn').onclick=()=>{const blob=new Blob([JSON.stringify({state,history,pointer,liveFeeds},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='BB24-simulator-save.json';a.click();URL.revokeObjectURL(a.href)};$('importInput').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const x=JSON.parse(await f.text());state=x.state||state;history=x.history||[];pointer=Number.isInteger(x.pointer)?x.pointer:-1;liveFeeds=x.liveFeeds!==false;renderAll();toast('Save imported.')}catch(err){toast('Could not import that save.')}};
+  document.addEventListener('change',e=>{if(e.target.id==='relFrom'||e.target.id==='relTo')updateRelationshipPeople();});
   $('liveFeedsToggle').onclick=()=>{liveFeeds=!liveFeeds;$('liveFeedsToggle').textContent=`Live Feeds: ${liveFeeds?'ON':'OFF'}`;$('liveFeedsToggle').classList.toggle('off',!liveFeeds)};
-  $('castGrid').addEventListener('input',e=>{const id=e.target.dataset.id,h=state.houseguests.find(x=>x.id===id);if(!h)return;if(e.target.dataset.field)h[e.target.dataset.field]=e.target.value;if(e.target.dataset.rating)h.ratings[e.target.dataset.rating]=Number(e.target.value);if(e.target.dataset.rating){const label=e.target.closest('label')?.querySelector('.rating-label span');if(label)label.textContent=e.target.value;}if(e.target.dataset.field && e.target.dataset.field==='nickname'){const title=e.target.closest('.cast-body')?.querySelector('.cast-name');if(title)title.textContent=displayName(h);}});
+  $('castGrid').addEventListener('input',e=>{const id=e.target.dataset.id,h=state.houseguests.find(x=>x.id===id);if(!h)return;if(e.target.dataset.field)h[e.target.dataset.field]=e.target.value;if(e.target.dataset.rating)h.ratings[e.target.dataset.rating]=Number(e.target.value);if(e.target.dataset.rating){const label=e.target.closest('label')?.querySelector('.rating-label span');if(label)label.textContent=e.target.value;}if(e.target.dataset.field){const title=e.target.closest('.cast-body')?.querySelector('.cast-name');if(title)title.textContent=displayName(h);updateRelationshipPeople();}});
   $('castGrid').addEventListener('change',e=>{
     const id=e.target.dataset.id;
     const h=state.houseguests.find(x=>x.id===id);
     if(!h)return;
-    if(e.target.dataset.field){h[e.target.dataset.field]=e.target.value;renderCast();return;}
+    if(e.target.dataset.field){h[e.target.dataset.field]=e.target.value;updateRelationshipPeople();}
   });
   $('castGrid').addEventListener('change',e=>{
     const id=e.target.dataset.uploadPortrait;
