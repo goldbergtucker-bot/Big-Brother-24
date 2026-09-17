@@ -49,7 +49,64 @@
       bestieGroups:[],splitHouse:{},backstageBossId:null,backstageIds:[],backstageResolved:false
     };
   }
-  function snapshot(){return {currentWeek:state.currentWeek,currentHOH:state.currentHOH,nominees:[...state.nominees],povPlayers:[...state.povPlayers],povWinner:state.povWinner,evictionVotes:state.evictionVotes.map(v=>({...v})),jury:[...state.jury],houseguests:state.houseguests.map(h=>({...h,ratings:{...h.ratings}})),finale:state.finale?JSON.parse(JSON.stringify(state.finale)):null}};
+  function snapshot(){return {currentWeek:state.currentWeek,currentHOH:state.currentHOH,nominees:[...state.nominees],povPlayers:[...state.povPlayers],povWinner:state.povWinner,evictionVotes:state.evictionVotes.map(v=>({...v})),jury:[...state.jury],houseguests:state.houseguests.map(h=>({...h,ratings:{...(h.ratings||{})}})),finale:state.finale?JSON.parse(JSON.stringify(state.finale)):null}};
+
+  function makeRelationshipMatrix(houseguests, existing){
+    const matrix={...(existing||{})};
+    houseguests.forEach(a=>{
+      matrix[a.id]={...(matrix[a.id]||{})};
+      houseguests.forEach(b=>{
+        if(a.id===b.id)return;
+        matrix[a.id][b.id]={friendship:50,trust:50,loyalty:50,rivalry:0,respect:50,attraction:0,type:'Unspecified',note:'',...(matrix[a.id][b.id]||{})};
+      });
+    });
+    return matrix;
+  }
+
+  function normalizeImportedState(raw){
+    const base=makeState();
+    const incoming=raw && typeof raw==='object' ? raw : {};
+    const imported=Object.assign(base,incoming);
+    imported.season=Object.assign(base.season||{},incoming.season||{});
+    imported.houseguests=Array.isArray(incoming.houseguests)?incoming.houseguests.map((h,i)=>({
+      id:h.id||`bb24-${i+1}`,slot:h.slot||i+1,firstName:h.firstName||'',lastName:h.lastName||'',nickname:h.nickname||'',displayName:h.displayName||'',gender:h.gender||'',imageUrl:h.imageUrl||'',portraitUrl:h.portraitUrl||'',status:h.status||'Active',active:h.active!==false,evicted:!!h.evicted,juryMember:!!h.juryMember,placement:h.placement??null,ratings:{...{general:50,physical:50,mental:50,social:50,strategic:50},...(h.ratings||{})},relationships:h.relationships||{},alliances:Array.isArray(h.alliances)?h.alliances:[],bestieGroup:h.bestieGroup??null,backstage:!!h.backstage,backstageBoss:!!h.backstageBoss
+    })):base.houseguests;
+    imported.relationships=makeRelationshipMatrix(imported.houseguests,incoming.relationships);
+    imported.alliances=Array.isArray(incoming.alliances)?incoming.alliances:[];
+    imported.nominees=Array.isArray(incoming.nominees)?incoming.nominees:[];
+    imported.povPlayers=Array.isArray(incoming.povPlayers)?incoming.povPlayers:[];
+    imported.evictionVotes=Array.isArray(incoming.evictionVotes)?incoming.evictionVotes:[];
+    imported.jury=Array.isArray(incoming.jury)?incoming.jury:[];
+    imported.evicted=Array.isArray(incoming.evicted)?incoming.evicted:[];
+    imported.bestieGroups=Array.isArray(incoming.bestieGroups)?incoming.bestieGroups:[];
+    imported.splitHouse=incoming.splitHouse&&typeof incoming.splitHouse==='object'?incoming.splitHouse:{};
+    imported.backstageIds=Array.isArray(incoming.backstageIds)?incoming.backstageIds:[];
+    imported.backstageBossId=incoming.backstageBossId||null;
+    imported.finished=!!incoming.finished;
+    return imported;
+  }
+
+  function normalizeHistory(rawHistory, importedState){
+    if(!Array.isArray(rawHistory))return [];
+    return rawHistory.filter(Boolean).map((e,i)=>({
+      id:e.id||i+1,week:(e.week ?? importedState.currentWeek ?? 1),phase:e.phase||'event',type:e.type||'event',title:e.title||e.type||'Event',competition:e.competition||null,data:e.data||{},lines:Array.isArray(e.lines)?e.lines:[],...e
+    }));
+  }
+
+  function applyImportedPayload(payload){
+    if(!payload || typeof payload!=='object') throw new Error('Invalid save file.');
+    const importedRaw=payload.state||payload.gameState||payload.seasonState||payload.data||payload.season||payload;
+    if(!importedRaw || typeof importedRaw!=='object') throw new Error('No season state found.');
+    const importedState=normalizeImportedState(importedRaw);
+    if(!importedState.houseguests.length) throw new Error('The save contains no Houseguests.');
+    state=importedState;
+    history=normalizeHistory(payload.history||importedState.history,state);
+    pointer=Number.isInteger(payload.pointer)?payload.pointer:(Number.isInteger(payload.revealIndex)?payload.revealIndex:(history.length?history.length-1:-1));
+    pointer=Math.max(-1,Math.min(pointer,Math.max(-1,history.length-1)));
+    liveFeeds=payload.liveFeeds!==false;
+    if(payload.liveFeedProfile && state.season)state.season.liveFeedProfile=payload.liveFeedProfile;
+    renderAll();
+  }
   function logEvent(e){const rec={id:history.length+1,...e};rec.snapshot=snapshot();history.push(rec);}
   function comp(week,type,side){
     let w=CONFIG.weeks[String(week)]||{}; let n=type==='hoh'?w.hoh:type==='pov'?(typeof w.pov==='object'?(side==='BroChella'?w.pov.bigBroChella:w.pov.dyreFest):w.pov):null;
@@ -368,7 +425,7 @@
     const tab=e.target.closest('.view-tabs button');if(tab){activeTab=tab.dataset.tab;renderTab();return}
     const del=e.target.closest('[data-delete-alliance]');if(del){state.alliances.splice(Number(del.dataset.deleteAlliance),1);renderSetup()}
   });
-  $('simulateBtn').onclick=simulate;$('resimulateBtn').onclick=simulate;$('previousBtn').onclick=()=>{if(pointer>0){pointer--;renderAll()}};$('nextBtn').onclick=()=>{if(pointer<history.length-1){pointer++;renderAll()}};$('revealSeasonBtn').onclick=()=>{pointer=history.length-1;renderAll()};$('revealWeekBtn').onclick=()=>{if(pointer<0){pointer=0}else{const current=history[pointer]?.week;const next=history.findIndex((e,i)=>i>pointer&&String(e.week)!==String(current));pointer=next<0?history.length-1:next-1}renderAll()};$('backToSetupBtn').onclick=()=>{$('seasonView').classList.add('hidden');$('setupView').classList.remove('hidden')};$('saveBtn').onclick=()=>{localStorage.setItem(STORAGE_KEY,JSON.stringify({state,history,pointer,liveFeeds}));toast('Season setup saved.')};$('resetBtn').onclick=()=>{state=makeState();history=[];pointer=-1;renderAll();toast('Simulator reset.')};$('exportBtn').onclick=()=>{const blob=new Blob([JSON.stringify({state,history,pointer,liveFeeds},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='BB24-simulator-save.json';a.click();URL.revokeObjectURL(a.href)};$('importInput').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const x=JSON.parse(await f.text());state=x.state||state;history=x.history||[];pointer=Number.isInteger(x.pointer)?x.pointer:-1;liveFeeds=x.liveFeeds!==false;renderAll();toast('Save imported.')}catch(err){toast('Could not import that save.')}};
+  $('simulateBtn').onclick=simulate;$('resimulateBtn').onclick=simulate;$('previousBtn').onclick=()=>{if(pointer>0){pointer--;renderAll()}};$('nextBtn').onclick=()=>{if(pointer<history.length-1){pointer++;renderAll()}};$('revealSeasonBtn').onclick=()=>{pointer=history.length-1;renderAll()};$('revealWeekBtn').onclick=()=>{if(pointer<0){pointer=0}else{const current=history[pointer]?.week;const next=history.findIndex((e,i)=>i>pointer&&String(e.week)!==String(current));pointer=next<0?history.length-1:next-1}renderAll()};$('backToSetupBtn').onclick=()=>{$('seasonView').classList.add('hidden');$('setupView').classList.remove('hidden')};$('saveBtn').onclick=()=>{localStorage.setItem(STORAGE_KEY,JSON.stringify({format:'BB24-SIMULATOR-SAVE',version:2,state,history,pointer,liveFeeds}));toast('Season setup saved.')};$('resetBtn').onclick=()=>{state=makeState();history=[];pointer=-1;renderAll();toast('Simulator reset.')};$('exportBtn').onclick=()=>{const payload={format:'BB24-SIMULATOR-SAVE',version:2,seasonVersion:2,exportedAt:new Date().toISOString(),state,history,pointer,liveFeeds};const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='BB24-simulator-save.json';document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},0)};$('importInput').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const text=await f.text();const x=JSON.parse(text);applyImportedPayload(x);toast('Season imported successfully.')}catch(err){console.error('BB24 import error:',err);toast(`Could not import that save: ${err.message||'invalid file'}`)}e.target.value=''};
   document.addEventListener('change',e=>{if(e.target.id==='relFrom'||e.target.id==='relTo')updateRelationshipPeople();});
   $('liveFeedsToggle').onclick=()=>{liveFeeds=!liveFeeds;$('liveFeedsToggle').textContent=`Live Feeds: ${liveFeeds?'ON':'OFF'}`;$('liveFeedsToggle').classList.toggle('off',!liveFeeds)};
   $('castGrid').addEventListener('input',e=>{const id=e.target.dataset.id,h=state.houseguests.find(x=>x.id===id);if(!h)return;if(e.target.dataset.field)h[e.target.dataset.field]=e.target.value;if(e.target.dataset.rating)h.ratings[e.target.dataset.rating]=Number(e.target.value);if(e.target.dataset.rating){const label=e.target.closest('label')?.querySelector('.rating-label span');if(label)label.textContent=e.target.value;}if(e.target.dataset.field){const title=e.target.closest('.cast-body')?.querySelector('.cast-name');if(title)title.textContent=displayName(h);updateRelationshipPeople();}});
