@@ -217,7 +217,10 @@
     // returned { use: false } whenever the HOH won POV, which caused the
     // simulator to leave the original nominations unchanged.
     if (vetoWinner.id === hoh.id) {
-      if (state.backdoorTargetId) {
+      // A planned backdoor is an explicit HOH strategy, so winning the POV
+      // does NOT cancel it. The HOH must use the Veto on an initial nominee
+      // so the planned target can become the replacement nominee.
+      if (state.backdoorTargetId && nominees.length) {
         return { use: true, saveId: nominees[0].id, backdoor: true };
       }
       return { use: false };
