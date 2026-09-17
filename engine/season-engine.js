@@ -220,9 +220,9 @@
     if(festieActive && s.nomineeGroupId){
       // Festie Besties compete as groups. The HOH's entire Bestie group,
       // the nominated Bestie group, and one additional Bestie group make up
-      // the normal six-player field. If the groups create more than six
-      // players (for example when a trio is involved), the full active house
-      // competes, matching the season rule used by this simulator.
+      // the Veto field. Every member of a selected group plays together.
+      // If a selected group is a trio, the field may therefore contain seven
+      // players; that does NOT expand the field to the entire house.
       const hohGroup=groupOf(s,hoh.id);
       const nomineeGroup=s.bestieGroups.find(g=>g.id===s.nomineeGroupId);
       const otherGroups=s.bestieGroups.filter(g=>g.id!==hohGroup?.id&&g.id!==nomineeGroup?.id&&g.memberIds.some(id=>{const p=hg(s,id);return p&&p.active;}));
@@ -236,9 +236,10 @@
       selectedGroups.forEach(g=>g.memberIds.forEach(id=>{
         const p=hg(s,id); if(p&&p.active&&!ids.includes(id)) ids.push(id);
       }));
-      if(ids.length>6){
-        ids=living(s).map(p=>p.id);
-      }
+      // Never replace an oversized Festie Bestie field with the entire
+      // house. A trio remains a trio, so Weeks 4–5 can legitimately have
+      // seven participants when one of the selected Bestie groups has three
+      // active members.
       pool=ids.map(id=>hg(s,id)).filter(Boolean);
       // These are the group selections; all are automatic under the Festie
       // Besties rule rather than individual random draws.
@@ -257,7 +258,7 @@
     s.povPlayers=pool.map(p=>p.id);
     const automaticIds=pool.map(p=>p.id).filter(id=>!pickedIds.includes(id));
     const line=festieActive && s.nomineeGroupId
-      ? `Festie Besties compete together: the HOH's Bestie group, the nominated Bestie group, and one additional Bestie group are selected. If those groups create a field larger than six, the full house competes.`
+      ? `Festie Besties compete together: the HOH's Bestie group, the nominated Bestie group, and one additional Bestie group are selected. Every member of those groups plays together; a trio can make the field seven players, but the entire house is not added.`
       : `${displayName(hoh)} and the nominees are automatically selected; ${pickedIds.length} additional houseguest${pickedIds.length===1?" is":"s are"} randomly drawn.`;
     log(s,{week,phase:s.phase,type:"pov-players",hohId:hoh.id,nomineeIds:s.nominees,povPlayers:s.povPlayers,participants:s.povPlayers,automaticIds,pickedIds,title:"POV Picked Players",lines:[line]});
     return pool;
