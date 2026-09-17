@@ -187,8 +187,21 @@
   function runNominations(s,week){
     const hoh=hg(s,s.currentHOH);
     let noms=null,groupId=null;
+
+    // Occasionally set up a backdoor: nominate a pawn/pair while keeping a
+    // major target off the block so the target can be named after the Veto.
+    // The relationship engine decides whether the plan makes sense this week.
+    const backdoorPlan = R()?.planBackdoor
+      ? R().planBackdoor(s,hoh,[])
+      : {use:false,target:null};
+    s.backdoorTargetId = backdoorPlan.use && backdoorPlan.target
+      ? backdoorPlan.target.id : null;
+    s.backdoorReason = backdoorPlan.use
+      ? (backdoorPlan.reason || "major strategic threat") : null;
     if(week>=CFG().festieBestiesFormWeek && s.bestieGroups.length){
-      const group=chooseNomineeGroup(s,hoh);
+      const backdoorGroupId = s.backdoorTargetId
+        ? groupOf(s,s.backdoorTargetId)?.id : null;
+      const group=chooseNomineeGroup(s,hoh,backdoorGroupId);
       if(group){
         noms=group.memberIds.map(id=>hg(s,id)).filter(p=>p&&p.active);
         groupId=group.id;
@@ -204,11 +217,18 @@
     s.nominees=noms.map(n=>n.id);
     s.nomineeGroupId=groupId;
     const plan=planTarget(s,hoh,noms);
-    s.intendedTarget=plan.text;
-    s.targetHistory=[{text:plan.text,reason:"Initial target"}];
+    s.intendedTarget=s.backdoorTargetId
+      ? displayName(hg(s,s.backdoorTargetId)) : plan.text;
+    s.targetHistory=[{
+      text:s.intendedTarget,
+      reason:s.backdoorTargetId ? `Backdoor plan: ${s.backdoorReason}` : "Initial target"
+    }];
     const lines=[groupId
       ? `${displayName(hoh)} nominates the Festie Besties group of ${noms.map(displayName).join(", ")} for eviction.`
       : `${displayName(hoh)} nominates ${noms.map(displayName).join(" and ")} for eviction.`];
+    if(s.backdoorTargetId){
+      lines.push(`${displayName(hoh)} is considering a backdoor plan targeting ${displayName(hg(s,s.backdoorTargetId))}; the target is intentionally left off the initial block.`);
+    }
     log(s,{week,phase:s.phase,type:"nominations",hohId:hoh.id,nomineeIds:s.nominees,nomineeGroupId:groupId,intendedTarget:s.intendedTarget,targetHistory:s.targetHistory,title:"Nomination Ceremony",lines});
   }
 
@@ -337,6 +357,37 @@
     const saved=noms.find(n=>n.id===decision.saveId)||noms[0];
     saved.nominated=false;
     const excludeIds=backstageExcludedIds(s,week);
+
+    // If the HOH deliberately set up a backdoor, the saved pawn/pair is
+    // replaced by the intended target rather than a random houseguest.
+    if(s.backdoorTargetId){
+      const target=hg(s,s.backdoorTargetId);
+      if(target && target.active && target.id!==hoh.id && !target.safe && !excludeIds.has(target.id)){
+        target.nominated=true;
+        const targetGroup=groupOf(s,target.id);
+        let finalNoms=noms.filter(n=>n.id!==saved.id);
+        if(s.nomineeGroupId && targetGroup){
+          const targetMembers=targetGroup.memberIds.map(id=>hg(s,id)).filter(p=>p&&p.active);
+          targetMembers.forEach(p=>p.nominated=true);
+          finalNoms=targetMembers;
+          s.nomineeGroupId=targetGroup.id;
+        }else{
+          finalNoms.push(target);
+          s.nomineeGroupId=null;
+        }
+        s.nominees=finalNoms.map(n=>n.id);
+        s.targetHistory=(s.targetHistory||[]).concat([{
+          text:displayName(target), reason:`Backdoor executed: ${s.backdoorReason || "major strategic threat"}`
+        }]);
+        log(s,{week,phase:s.phase,type:"veto-ceremony",hohId:hoh.id,winnerId:winner.id,nomineeIds:s.nominees,finalNomineeIds:s.nominees,vetoUsed:true,backdoor:true,title:"Veto Ceremony — Backdoor Executed",lines:[`${displayName(winner)} uses the Power of Veto on ${displayName(saved)}.`,`${displayName(hoh)} names ${displayName(target)} as the replacement nominee as part of the backdoor plan.`]});
+        return;
+      }
+      // If circumstances make the intended backdoor impossible, abandon the
+      // plan cleanly and use the normal replacement logic below.
+      s.backdoorTargetId=null;
+      s.backdoorReason=null;
+    }
+
     const pool=living(s).filter(p=>p.id!==hoh.id&&!p.safe&&!noms.some(n=>n.id===p.id)&&p.id!==saved.id&&p.id!==winner.id&&!excludeIds.has(p.id));
     const replacement=R().pickReplacement?R().pickReplacement(s,hoh,pool,noms.map(n=>n.id)):pick(pool);
     let finalNoms=noms.filter(n=>n.id!==saved.id);
