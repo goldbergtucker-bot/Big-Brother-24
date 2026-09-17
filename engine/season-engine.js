@@ -326,7 +326,21 @@
   function applyVeto(s,week,veto){
     let noms=s.nominees.map(id=>hg(s,id)).filter(Boolean);
     const hoh=hg(s,s.currentHOH),winner=veto.winner;
-    const decision=R().decideVetoUse(s,winner,hoh,noms);
+    let decision=R().decideVetoUse(s,winner,hoh,noms);
+
+    // A planned backdoor is a committed nomination strategy. Never let the
+    // generic veto-use decision cancel it, including the special case where
+    // the HOH wins the POV. The HOH must remove an initial nominee and name
+    // the planned backdoor target as the replacement.
+    if(s.backdoorTargetId && noms.length){
+      const target=hg(s,s.backdoorTargetId);
+      const validTarget=target && target.active && target.id!==hoh.id && !target.safe &&
+        !noms.some(n=>n.id===target.id);
+      if(validTarget){
+        decision={use:true,saveId:noms[0].id,backdoor:true};
+      }
+    }
+
     if(!decision.use){
       log(s,{week,phase:s.phase,type:"veto-ceremony",hohId:hoh.id,winnerId:winner.id,nomineeIds:s.nominees,finalNomineeIds:s.nominees,vetoUsed:false,title:"Veto Ceremony — Not Used",lines:[`${displayName(winner)} does not use the Power of Veto.`]});
       return;
