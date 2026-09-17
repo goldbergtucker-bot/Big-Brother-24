@@ -282,7 +282,7 @@
       body += `<div class="pov-picked-layout">
         <div class="ceremony-role-section">
           <div class="ceremony-label">AUTOMATIC PLAYERS</div>
-          <div class="ceremony-players">${card(hoh,"HOH")} ${(()=>{const g=(d.bestieGroups||view?.bestieGroups||[]).find(g=>(g.memberIds||[]).includes(d.hohId));const bs=(g?.memberIds||[]).filter(id=>id!==d.hohId).map(id=>byId(view,id)).filter(Boolean);return bs.map(h=>card(h,"HOH'S FESTIE BESTIE")).join("")})()} ${nominees.map(h=>card(h,"NOMINEE — FESTIE BESTIES")).join("")}</div>
+          <div class="ceremony-players">${card(hoh,"HOH")} ${nominees.map(h=>card(h,"NOMINEE")).join("")}</div>
         </div>
         <div class="ceremony-arrow">+</div>
         <div class="ceremony-role-section">
@@ -291,9 +291,15 @@
         </div>
       </div>`;
     } else if (entry.type === "veto") {
-      const winnerIds = d.winnerIds || entry.winnerIds || entry.competition?.winnerIds || (d.winnerId ? [d.winnerId] : []);
-      const winners = winnerIds.map(id=>byId(view,id)).filter(Boolean);
-      if (winners.length) body += `<div class="hero-players veto-winner-only">${winners.map(h=>card(h,"POV WINNER — FESTIE BESTIES")).join("")}</div>`;
+      const winnerId = d.winnerId || entry.winnerId || entry.competition?.winner?.id;
+      const winner = byId(view, winnerId);
+      if (winner) {
+        // Festie Besties are active only during Weeks 3–5. The POV winner
+        // should carry the FESTIE BESTIE label only during that window; all
+        // other weeks use the normal POV WINNER label.
+        const povRole = Number(entry.week) >= 3 && Number(entry.week) <= 5 ? "FESTIE BESTIE" : "POV WINNER";
+        body += `<div class="hero-players veto-winner-only">${card(winner,povRole)}</div>`;
+      }
     } else if (entry.type === "wildcard") {
       const winnerId = d.winnerId || entry.winnerId || entry.competition?.winner?.id;
       const winner = byId(view, winnerId);
