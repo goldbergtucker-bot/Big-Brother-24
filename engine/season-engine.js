@@ -147,7 +147,6 @@
       if(bestG) bestG.memberIds.push(leftover.id); else groups.push({id:`bestie-${groups.length+1}`,memberIds:[leftover.id]});
     }
     s.bestieGroups=groups;
-    s.bestieTwistActive=true;
     log(s,{week:3,phase:"standard",type:"bestie-groups",participants:living(s).map(p=>p.id),title:"Festie Besties — Groups Formed",lines:groups.map(g=>`${g.memberIds.map(id=>displayName(hg(s,id))).join(" & ")} are Festie Besties.`)});
   }
 
@@ -163,25 +162,20 @@
     return scored[0].g;
   }
 
-  function festieActiveForWeek(s,week){
-    return week>=CFG().festieBestiesFormWeek && week<=5 && Array.isArray(s.bestieGroups) && s.bestieGroups.length>0;
-  }
-
   /* ---------------------------- NOMINATIONS ---------------------------- */
   function backstageExcludedIds(s,week){
     if(week===CFG().backstageBossWeek&&s.backstage) return new Set([s.backstage.bossId,...s.backstage.passIds]);
     return new Set();
   }
-  function eligibleForNominations(s,hoh,week,extraExcludeIds){
+  function eligibleForNominations(s,hoh,week){
     let pool=living(s).filter(p=>p.id!==hoh.id&&!p.safe);
     const exclude=backstageExcludedIds(s,week);
-    const extra=extraExcludeIds instanceof Set ? extraExcludeIds : new Set(extraExcludeIds || []);
-    if(exclude.size || extra.size) pool=pool.filter(p=>!exclude.has(p.id)&&!extra.has(p.id));
+    if(exclude.size) pool=pool.filter(p=>!exclude.has(p.id));
     if(pool.length<2)pool=living(s).filter(p=>p.id!==hoh.id);
     return pool;
   }
-  function chooseIndividualNominees(s,hoh,week,extraExcludeIds){
-    const pool=eligibleForNominations(s,hoh,week,extraExcludeIds);
+  function chooseIndividualNominees(s,hoh,week){
+    const pool=eligibleForNominations(s,hoh,week);
     if(R()?.pickNominees){try{return R().pickNominees(s,hoh,pool,Math.min(2,pool.length));}catch(e){/* fall through */}}
     return shuffle(pool).slice(0,2);
   }
@@ -204,7 +198,7 @@
       ? backdoorPlan.target.id : null;
     s.backdoorReason = backdoorPlan.use
       ? (backdoorPlan.reason || "major strategic threat") : null;
-    if(festieActiveForWeek(s,week)){
+    if(week>=CFG().festieBestiesFormWeek && s.bestieGroups.length){
       const backdoorGroupId = s.backdoorTargetId
         ? groupOf(s,s.backdoorTargetId)?.id : null;
       const group=chooseNomineeGroup(s,hoh,backdoorGroupId);
@@ -213,23 +207,10 @@
         groupId=group.id;
       }
     }
-    if(!noms||!noms.length) noms=chooseIndividualNominees(s,hoh,week,s.backdoorTargetId ? new Set([s.backdoorTargetId]) : null);
-    // A true backdoor target must be kept off the initial block. This guard
-    // prevents any fallback/legacy nominee picker from accidentally selecting
-    // the planned target before the Veto ceremony.
-    if(s.backdoorTargetId && noms.some(n=>n.id===s.backdoorTargetId)){
-      const targetId=s.backdoorTargetId;
-      noms=noms.filter(n=>n.id!==targetId);
-      const replacementPool=eligibleForNominations(s,hoh,week,new Set([targetId]));
-      const needed=Math.min(2-noms.length,replacementPool.filter(p=>!noms.some(n=>n.id===p.id)).length);
-      if(needed>0){
-        const additions=shuffle(replacementPool.filter(p=>!noms.some(n=>n.id===p.id))).slice(0,needed);
-        noms.push(...additions);
-      }
-    }
+    if(!noms||!noms.length) noms=chooseIndividualNominees(s,hoh,week);
     if(noms.length===1){
       const excludeIds=backstageExcludedIds(s,week);
-      const extra=living(s).filter(p=>p.id!==hoh.id&&!noms.some(n=>n.id===p.id)&&!excludeIds.has(p.id)&&p.id!==s.backdoorTargetId);
+      const extra=living(s).filter(p=>p.id!==hoh.id&&!noms.some(n=>n.id===p.id)&&!excludeIds.has(p.id));
       if(extra.length) noms.push(pick(extra));
     }
     noms.forEach(n=>n.nominated=true);
@@ -253,7 +234,7 @@
 
   function selectPOVPlayers(s,week){
     const noms=s.nominees.map(id=>hg(s,id)).filter(Boolean),hoh=hg(s,s.currentHOH);
-    const festieActive=festieActiveForWeek(s,week);
+    const festieActive=week>=CFG().festieBestiesFormWeek && week<=5 && s.bestieGroups.length>0;
     let pool=[];
     let pickedIds=[];
     if(festieActive && s.nomineeGroupId){
@@ -303,7 +284,7 @@
     return pool;
   }
   function runPOVCompetition(s,week,pool,type="pov"){
-    const festieActive=festieActiveForWeek(s,week) && !!s.nomineeGroupId;
+    const festieActive=week>=CFG().festieBestiesFormWeek && week<=5 && s.nomineeGroupId && s.bestieGroups.length>0;
     if(festieActive){
       // Score each participating Bestie group as a unit. The winning group
       // receives the Veto together; the strongest individual in that group
@@ -350,11 +331,39 @@
       log(s,{week,phase:s.phase,type:"veto-ceremony",hohId:hoh.id,winnerId:winner.id,nomineeIds:s.nominees,finalNomineeIds:s.nominees,vetoUsed:false,title:"Veto Ceremony — Not Used",lines:[`${displayName(winner)} does not use the Power of Veto.`]});
       return;
     }
-    if(festieActiveForWeek(s,week) && s.nomineeGroupId){
+    if(s.nomineeGroupId){
       noms.forEach(n=>{n.nominated=false;});
       const hohGroupId=groupOf(s,hoh.id)?.id;
-      const vetoWinnerGroupId=groupOf(s,winner.id)?.id;
-      const excludeIds=new Set([s.nomineeGroupId,hohGroupId,vetoWinnerGroupId].filter(Boolean));
+
+      // A planned backdoor takes priority over the normal Festie Besties
+      // replacement-group lottery. If the HOH wins the Veto, or another
+      // player wins and uses it, the planned target's Bestie group becomes
+      // the replacement group. The target was intentionally kept off the
+      // initial block, so this is the actual backdoor execution point.
+      if(s.backdoorTargetId){
+        const target=hg(s,s.backdoorTargetId);
+        const targetGroup=target ? groupOf(s,target.id) : null;
+        if(target && target.active && target.id!==hoh.id && !target.safe &&
+           targetGroup && targetGroup.id!==hohGroupId &&
+           targetGroup.id!==s.nomineeGroupId &&
+           targetGroup.memberIds.some(id=>{const p=hg(s,id);return p&&p.active;})){
+          const replacementMembers=targetGroup.memberIds.map(id=>hg(s,id)).filter(p=>p&&p.active);
+          replacementMembers.forEach(p=>p.nominated=true);
+          s.nomineeGroupId=targetGroup.id;
+          s.nominees=replacementMembers.map(p=>p.id);
+          s.targetHistory=(s.targetHistory||[]).concat([{
+            text:displayName(target), reason:`Backdoor executed: ${s.backdoorReason || "major strategic threat"}`
+          }]);
+          log(s,{week,phase:s.phase,type:"veto-ceremony",hohId:hoh.id,winnerId:winner.id,nomineeIds:s.nominees,finalNomineeIds:s.nominees,vetoUsed:true,backdoor:true,title:"Veto Ceremony — Backdoor Executed",lines:[`${displayName(winner)} uses the Power of Veto, removing the nominated Festie Besties group from the block.`,`${displayName(hoh)} names ${displayName(target)} and the target's Festie Besties group as the replacement nominees as part of the backdoor plan.`]});
+          return;
+        }
+        // If the target cannot legally become the replacement, abandon the
+        // backdoor and continue with the normal Festie Besties replacement.
+        s.backdoorTargetId=null;
+        s.backdoorReason=null;
+      }
+
+      const excludeIds=new Set([s.nomineeGroupId,hohGroupId].filter(Boolean));
       const candidates=s.bestieGroups.filter(g=>!excludeIds.has(g.id)&&g.memberIds.some(id=>{const p=hg(s,id);return p&&p.active;}));
       const replacementGroup=pick(candidates);
       let replacementMembers=[];
@@ -366,7 +375,7 @@
         // No eligible replacement Bestie group remains (rare, small-cast edge case).
         // Fall back to a normal individual replacement pair so the block is never empty.
         s.nomineeGroupId=null;
-        const indivPool=living(s).filter(p=>p.id!==hoh.id&&!p.safe&&p.id!==winner.id);
+        const indivPool=living(s).filter(p=>p.id!==hoh.id&&!p.safe);
         replacementMembers=shuffle(indivPool).slice(0,Math.min(2,indivPool.length));
         replacementMembers.forEach(p=>p.nominated=true);
       }
@@ -521,14 +530,6 @@
   function runStandardWeek(s,week){
     s.week=week;s.phase="standard";
     s.houseguests.forEach(h=>{h.safe=false;h.nominated=false;});
-    // Festie Besties is a Weeks 3–5 twist only. Remove the old groups before
-    // Week 6 begins so they cannot affect nominations, vetoes, or displays.
-    if(week>5 && Array.isArray(s.bestieGroups) && s.bestieGroups.length){
-      s.bestieGroups=[];
-      s.nomineeGroupId=null;
-      s.bestieTwistActive=false;
-      log(s,{week,phase:"standard",type:"bestie-groups-ended",participants:living(s).map(p=>p.id),title:"Festie Besties — Twist Ends",lines:["The Festie Besties twist ends after Week 5. Houseguests now compete and are nominated individually."]});
-    }
     const priorIds=new Set(s._priorHohIds.length?s._priorHohIds:(s.currentHOH?[s.currentHOH]:[]));
     let pool=living(s).filter(p=>!priorIds.has(p.id));
     if(pool.length<2)pool=living(s);
@@ -537,7 +538,7 @@
     s.currentHOH=hoh.id;s._priorHohIds=[hoh.id];
     log(s,{week,phase:"standard",type:"hoh",winnerId:hoh.id,participants:pool.map(p=>p.id),competition:comp,title:`Head of Household — ${comp.label}`,lines:[`${displayName(hoh)} wins HOH.`]});
     if(week===CFG().festieBestiesFormWeek) formBestieGroups(s);
-    else if(festieActiveForWeek(s,week)){
+    else if(week>=CFG().festieBestiesFormWeek && week<=5 && s.bestieGroups.length){
       log(s,{week,phase:"standard",type:"bestie-groups",participants:living(s).map(p=>p.id),title:`Festie Besties — Week ${week} Update`,lines:[`Festie Besties remain active this week.`,...s.bestieGroups.map(g=>`${g.memberIds.map(id=>displayName(hg(s,id))).join(" & ")} are Festie Besties.`)]});
     }
     if(week>=CFG().festieBestiesFormWeek && week<=5){
