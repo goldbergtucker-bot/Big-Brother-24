@@ -291,14 +291,17 @@
         </div>
       </div>`;
     } else if (entry.type === "veto") {
-      const winnerId = d.winnerId || entry.winnerId || entry.competition?.winner?.id;
-      const winner = byId(view, winnerId);
-      if (winner) {
-        // Festie Besties are active only during Weeks 3–5. The POV winner
-        // should carry the FESTIE BESTIE label only during that window; all
-        // other weeks use the normal POV WINNER label.
-        const povRole = Number(entry.week) >= 3 && Number(entry.week) <= 5 ? "FESTIE BESTIE" : "POV WINNER";
-        body += `<div class="hero-players veto-winner-only">${card(winner,povRole)}</div>`;
+      const winnerIds = Array.isArray(d.winnerIds) && d.winnerIds.length
+        ? d.winnerIds
+        : (Array.isArray(entry.winnerIds) && entry.winnerIds.length ? entry.winnerIds : [d.winnerId || entry.winnerId || entry.competition?.winner?.id]);
+      const winners = winnerIds.map(id=>byId(view,id)).filter(Boolean);
+      if (winners.length) {
+        // Festie Besties are active only during Weeks 3–5. When the Veto is
+        // won by a Bestie group, show the entire winning group together.
+        const povRole = Number(entry.week) >= 3 && Number(entry.week) <= 5 && (d.winnerIds?.length || entry.winnerIds?.length)
+          ? "FESTIE BESTIES"
+          : (Number(entry.week) >= 3 && Number(entry.week) <= 5 ? "FESTIE BESTIE" : "POV WINNER");
+        body += `<div class="hero-players veto-winner-only">${winners.map(w=>card(w,povRole)).join("")}</div>`;
       }
     } else if (entry.type === "wildcard") {
       const winnerId = d.winnerId || entry.winnerId || entry.competition?.winner?.id;
