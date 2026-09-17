@@ -172,15 +172,16 @@
     if(week===CFG().backstageBossWeek&&s.backstage) return new Set([s.backstage.bossId,...s.backstage.passIds]);
     return new Set();
   }
-  function eligibleForNominations(s,hoh,week){
+  function eligibleForNominations(s,hoh,week,extraExcludeIds){
     let pool=living(s).filter(p=>p.id!==hoh.id&&!p.safe);
     const exclude=backstageExcludedIds(s,week);
-    if(exclude.size) pool=pool.filter(p=>!exclude.has(p.id));
+    const extra=extraExcludeIds instanceof Set ? extraExcludeIds : new Set(extraExcludeIds || []);
+    if(exclude.size || extra.size) pool=pool.filter(p=>!exclude.has(p.id)&&!extra.has(p.id));
     if(pool.length<2)pool=living(s).filter(p=>p.id!==hoh.id);
     return pool;
   }
-  function chooseIndividualNominees(s,hoh,week){
-    const pool=eligibleForNominations(s,hoh,week);
+  function chooseIndividualNominees(s,hoh,week,extraExcludeIds){
+    const pool=eligibleForNominations(s,hoh,week,extraExcludeIds);
     if(R()?.pickNominees){try{return R().pickNominees(s,hoh,pool,Math.min(2,pool.length));}catch(e){/* fall through */}}
     return shuffle(pool).slice(0,2);
   }
@@ -212,10 +213,23 @@
         groupId=group.id;
       }
     }
-    if(!noms||!noms.length) noms=chooseIndividualNominees(s,hoh,week);
+    if(!noms||!noms.length) noms=chooseIndividualNominees(s,hoh,week,s.backdoorTargetId ? new Set([s.backdoorTargetId]) : null);
+    // A true backdoor target must be kept off the initial block. This guard
+    // prevents any fallback/legacy nominee picker from accidentally selecting
+    // the planned target before the Veto ceremony.
+    if(s.backdoorTargetId && noms.some(n=>n.id===s.backdoorTargetId)){
+      const targetId=s.backdoorTargetId;
+      noms=noms.filter(n=>n.id!==targetId);
+      const replacementPool=eligibleForNominations(s,hoh,week,new Set([targetId]));
+      const needed=Math.min(2-noms.length,replacementPool.filter(p=>!noms.some(n=>n.id===p.id)).length);
+      if(needed>0){
+        const additions=shuffle(replacementPool.filter(p=>!noms.some(n=>n.id===p.id))).slice(0,needed);
+        noms.push(...additions);
+      }
+    }
     if(noms.length===1){
       const excludeIds=backstageExcludedIds(s,week);
-      const extra=living(s).filter(p=>p.id!==hoh.id&&!noms.some(n=>n.id===p.id)&&!excludeIds.has(p.id));
+      const extra=living(s).filter(p=>p.id!==hoh.id&&!noms.some(n=>n.id===p.id)&&!excludeIds.has(p.id)&&p.id!==s.backdoorTargetId);
       if(extra.length) noms.push(pick(extra));
     }
     noms.forEach(n=>n.nominated=true);
