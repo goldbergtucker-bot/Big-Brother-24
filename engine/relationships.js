@@ -154,16 +154,7 @@
    */
   function planBackdoor(state, hoh, nominees) {
     const nomineeIds = new Set(nominees.map(n => n.id));
-    const backstageIds = new Set([
-      ...(state.backstage?.passIds || []),
-      ...(state.backstage?.bossId ? [state.backstage.bossId] : [])
-    ]);
-    const candidates = livingHouseguests(state).filter(hg =>
-      hg.id !== hoh.id &&
-      !nomineeIds.has(hg.id) &&
-      !hg.safe &&
-      !backstageIds.has(hg.id)
-    );
+    const candidates = livingHouseguests(state).filter(hg => hg.id !== hoh.id && !nomineeIds.has(hg.id) && !hg.safe);
     if (!candidates.length) return { use: false, target: null, reason: "No eligible backdoor target" };
 
     const ranked = candidates.map(target => {
@@ -219,7 +210,18 @@
   /** Decides whether a veto winner uses the veto, and on whom. */
   function decideVetoUse(state, vetoWinner, hoh, nominees) {
     if (!nominees || !nominees.length) return { use: false };
-    if (vetoWinner.id === hoh.id) return { use: false };
+
+    // If the HOH deliberately planned a backdoor and also wins the POV,
+    // the HOH should use the Veto on one of the initial nominees and name
+    // the backdoor target as the replacement. The old logic immediately
+    // returned { use: false } whenever the HOH won POV, which caused the
+    // simulator to leave the original nominations unchanged.
+    if (vetoWinner.id === hoh.id) {
+      if (state.backdoorTargetId) {
+        return { use: true, saveId: nominees[0].id, backdoor: true };
+      }
+      return { use: false };
+    }
 
     const isNominee = nominees.some(n => n.id === vetoWinner.id);
     if (isNominee) {
