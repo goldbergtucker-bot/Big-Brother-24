@@ -17,6 +17,7 @@ window.BB24_CONFIG = Object.freeze({
   /* ---------------------------- TWIST TIMING ---------------------------- */
   backstageBossWeek: 1,
   festieBestiesFormWeek: 3,
+  festieBestiesEndWeek: 5,
   splitHouseWeek: 7,
   juryThresholdPlacement: 11,
 
