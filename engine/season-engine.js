@@ -346,26 +346,13 @@
     const hoh=hg(s,s.currentHOH),winner=veto.winner;
     let decision=R().decideVetoUse(s,winner,hoh,noms);
 
-    // FINAL 4 SPECIAL RULE: if the Veto winner is the one HouseGuest who is
-    // neither HOH nor nominated, they do NOT use the Veto to remove a nominee.
-    // Doing so would leave only one nominee on the block. Their reward for
-    // winning the Final 4 Veto is instead becoming the sole voter to evict.
-    // This must override every generic/backdoor veto-use decision.
-    const finalFour = living(s).length === 4;
-    const finalFourNonNominee = finalFour && winner.id !== hoh.id &&
-      !noms.some(n=>n.id===winner.id);
-    if(finalFourNonNominee){
-      decision={use:false,finalFourSoleVoter:true};
-      s.finalFourSoleVoterId=winner.id;
-    }
-
     // A planned backdoor is a committed nomination strategy. Never let the
     // generic veto-use decision cancel it, including the special case where
     // the HOH wins the POV. The HOH must remove an initial nominee and name
     // the planned backdoor target as the replacement.
-    if(s.backdoorTargetId && noms.length){
+    if(s.backdoorTargetId && noms.length && !noms.some(n=>n.id===winner.id)){
       const target=hg(s,s.backdoorTargetId);
-      const validTarget=target && target.active && target.id!==hoh.id && !target.safe &&
+      const validTarget=target && target.active && target.id!==hoh.id && target.id!==winner.id && !target.safe &&
         !noms.some(n=>n.id===target.id);
       if(validTarget){
         decision={use:true,saveId:noms[0].id,backdoor:true};
@@ -373,11 +360,7 @@
     }
 
     if(!decision.use){
-      if(decision.finalFourSoleVoter){
-        log(s,{week,phase:s.phase,type:"veto-ceremony",hohId:hoh.id,winnerId:winner.id,nomineeIds:s.nominees,finalNomineeIds:s.nominees,vetoUsed:false,finalFour:true,soleVoterId:winner.id,title:"Final 4 Veto — Sole Vote",lines:[`${displayName(winner)} wins the Final 4 Power of Veto but cannot use it because they are neither the HOH nor a nominee.`,`${displayName(winner)} becomes the sole voter to evict one of the two nominees.`]});
-      }else{
-        log(s,{week,phase:s.phase,type:"veto-ceremony",hohId:hoh.id,winnerId:winner.id,nomineeIds:s.nominees,finalNomineeIds:s.nominees,vetoUsed:false,title:"Veto Ceremony — Not Used",lines:[`${displayName(winner)} does not use the Power of Veto.`]});
-      }
+      log(s,{week,phase:s.phase,type:"veto-ceremony",hohId:hoh.id,winnerId:winner.id,nomineeIds:s.nominees,finalNomineeIds:s.nominees,vetoUsed:false,title:"Veto Ceremony — Not Used",lines:[`${displayName(winner)} does not use the Power of Veto.`]});
       return;
     }
     if(s.nomineeGroupId){
@@ -392,7 +375,7 @@
       if(s.backdoorTargetId){
         const target=hg(s,s.backdoorTargetId);
         const targetGroup=target ? groupOf(s,target.id) : null;
-        if(target && target.active && target.id!==hoh.id && !target.safe &&
+        if(target && target.active && target.id!==hoh.id && target.id!==winner.id && !target.safe &&
            targetGroup && targetGroup.id!==hohGroupId &&
            targetGroup.id!==s.nomineeGroupId &&
            targetGroup.memberIds.every(id=>{const p=hg(s,id);return p&&p.active&&!p.safe;}) &&
@@ -464,7 +447,7 @@
     // replaced by the intended target rather than a random houseguest.
     if(s.backdoorTargetId){
       const target=hg(s,s.backdoorTargetId);
-      if(target && target.active && target.id!==hoh.id && !target.safe && !excludeIds.has(target.id)){
+      if(target && target.active && target.id!==hoh.id && target.id!==winner.id && !target.safe && !excludeIds.has(target.id)){
         target.nominated=true;
         const targetGroup=groupOf(s,target.id);
         let finalNoms=noms.filter(n=>n.id!==saved.id);
@@ -491,7 +474,13 @@
     }
 
     const pool=living(s).filter(p=>p.id!==hoh.id&&!p.safe&&!noms.some(n=>n.id===p.id)&&p.id!==saved.id&&p.id!==winner.id&&!excludeIds.has(p.id));
-    const replacement=R().pickReplacement?R().pickReplacement(s,hoh,pool,noms.map(n=>n.id)):pick(pool);
+    let replacement=R().pickReplacement?R().pickReplacement(s,hoh,pool,noms.map(n=>n.id)):pick(pool);
+    // HARD SAFETY: a Veto holder can never be the replacement nominee.
+    // Some strategy/pickReplacement implementations may return a player
+    // outside the supplied pool, so validate the result again here.
+    if(replacement && (replacement.id===winner.id || replacement.id===hoh.id || replacement.safe || noms.some(n=>n.id===replacement.id))){
+      replacement=pick(pool.filter(p=>p.id!==winner.id&&p.id!==hoh.id&&!p.safe&&!noms.some(n=>n.id===p.id)));
+    }
     let finalNoms=noms.filter(n=>n.id!==saved.id);
     if(replacement){replacement.nominated=true;finalNoms.push(replacement);}
     s.nominees=finalNoms.map(n=>n.id);
@@ -630,6 +619,45 @@
     evictionCycle(s,week);
   }
 
+  /* ----------------------- WEEK 9 DOUBLE EVICTION ----------------------- */
+  function runDoubleEvictionWeek9(s){
+    s.week=9;s.phase="double-eviction";
+    s.houseguests.forEach(h=>{h.safe=false;h.nominated=false;});
+
+    // ROUND 1: the normal Week 9 cycle (Burning Bot -> BB Comics -> eviction).
+    const priorIds=new Set(s._priorHohIds.length?s._priorHohIds:(s.currentHOH?[s.currentHOH]:[]));
+    let pool=living(s).filter(p=>!priorIds.has(p.id));
+    if(pool.length<2)pool=living(s);
+    const hohComp=C().runCompetition(pool,{week:9,type:"hoh"});
+    const hoh=hohComp.winner;
+    s.currentHOH=hoh.id;s._priorHohIds=[hoh.id];
+    log(s,{week:9,phase:"double-eviction",type:"hoh",round:1,winnerId:hoh.id,participants:pool.map(p=>p.id),competition:hohComp,title:`Double Eviction Round 1 — HOH — ${hohComp.label}`,lines:[`${displayName(hoh)} wins the first HOH of the Week 9 Double Eviction.`]});
+    runNominations(s,9);
+    const povPool=selectPOVPlayers(s,9);
+    const veto=runPOVCompetition(s,9,povPool);
+    applyVeto(s,9,veto);
+    const firstEvicted=evictionCycle(s,9);
+    if(firstEvicted)log(s,{week:9,phase:"double-eviction",type:"double-eviction-round-complete",round:1,evictedId:firstEvicted.id,title:"Double Eviction — First Eviction Complete",lines:[`${displayName(firstEvicted)} is the first eviction of the Week 9 Double Eviction.`]});
+
+    // ROUND 2: this happens inside Week 9. It is NOT Week 10 and must not
+    // create a generic "Social/Physical/Mental Comp" week.
+    s.houseguests.forEach(h=>{h.safe=false;h.nominated=false;});
+    const priorSecond=new Set([hoh.id]);
+    pool=living(s).filter(p=>!priorSecond.has(p.id));
+    if(pool.length<2)pool=living(s);
+    const secondHohComp=C().runCompetition(pool,{week:9,type:"hoh-double"});
+    const secondHoh=secondHohComp.winner;
+    s.currentHOH=secondHoh.id;s._priorHohIds=[secondHoh.id];
+    log(s,{week:9,phase:"double-eviction",type:"hoh",round:2,winnerId:secondHoh.id,participants:pool.map(p=>p.id),competition:secondHohComp,title:`Double Eviction Round 2 — HOH — ${secondHohComp.label}`,lines:[`${displayName(secondHoh)} wins the second HOH of the Week 9 Double Eviction.`]});
+    runNominations(s,9);
+    const secondPovPool=selectPOVPlayers(s,9);
+    const secondVeto=runPOVCompetition(s,9,secondPovPool,"pov-double");
+    applyVeto(s,9,secondVeto);
+    const secondEvicted=evictionCycle(s,9);
+    if(secondEvicted)log(s,{week:9,phase:"double-eviction",type:"double-eviction-round-complete",round:2,evictedId:secondEvicted.id,title:"Double Eviction — Second Eviction Complete",lines:[`${displayName(secondEvicted)} is the second eviction of the Week 9 Double Eviction.`]});
+    s.phase="standard";
+  }
+
   /* ----------------------- SPLIT HOUSE (WEEK 7) ----------------------- */
   function runSplitHouse(s,week){
     const pool=shuffle(living(s));
@@ -670,7 +698,10 @@
       const saved=noms.find(n=>n.id===decision.saveId)||noms[0];
       saved.nominated=false;
       const replPool=members.filter(p=>p.id!==hoh.id&&p.id!==saved.id&&!noms.some(n=>n.id===p.id)&&p.id!==vetoWinner.id);
-      const replacement=R().pickReplacement?R().pickReplacement(s,hoh,replPool,noms.map(n=>n.id)):pick(replPool);
+      let replacement=R().pickReplacement?R().pickReplacement(s,hoh,replPool,noms.map(n=>n.id)):pick(replPool);
+      if(replacement && (replacement.id===vetoWinner.id || replacement.id===hoh.id || replacement.safe || noms.some(n=>n.id===replacement.id))){
+        replacement=pick(replPool.filter(p=>p.id!==vetoWinner.id&&p.id!==hoh.id&&!p.safe&&!noms.some(n=>n.id===p.id)));
+      }
       let finalNoms=noms.filter(n=>n.id!==saved.id);
       if(replacement){replacement.nominated=true;finalNoms.push(replacement);}
       s.nominees=finalNoms.map(n=>n.id);
@@ -700,14 +731,14 @@
     ensureState(s);
     s.history=[];s.jury=[];s.evicted=[];s.evictionVotes=[];s.nominees=[];s.povPlayers=[];s.vetoWinners=[];
     s.currentHOH=null;s.originalHOH=null;s.finale=null;
-    s.finalFourSoleVoterId=null;
     s.backstage=null;s.bestieGroups=[];s.splitHouse=null;s.nomineeGroupId=null;s._priorHohIds=[];
     s.season.evictionCount=0;s.season.castSize=s.houseguests.length;s.teams=[];
     s.houseguests.forEach(h=>{h.active=true;h.safe=false;h.nominated=false;h.juryMember=false;h.evicted=false;h.placement=null;});
     runWeek1(s);
     let week=2,guard=0;
     while(living(s).length>3&&week<=30&&guard<40){
-      if(week===CFG().splitHouseWeek&&living(s).length>=6) runSplitHouseWeek(s,week);
+      if(week===9&&living(s).length>=6) runDoubleEvictionWeek9(s);
+      else if(week===CFG().splitHouseWeek&&living(s).length>=6) runSplitHouseWeek(s,week);
       else runStandardWeek(s,week);
       week++;guard++;
     }
