@@ -36,9 +36,9 @@ window.BB24_CONFIG = Object.freeze({
     {week:4,type:"pov",name:"Trippy Watch Party",category:"mental",description:"Played in pairs. Houseguests compared a baseline image against a slightly altered version on a giant tie-dye kaleidoscope screen, racing to spot the visual discrepancies."},
 
     {week:5,type:"hoh",name:"Mind Your Step",category:"physical",description:"A balance-and-assembly challenge. Houseguests walked narrow elevated beams to transfer 3D puzzle pieces one at a time to a build station, reconstructing a giant graphic design."},
-    {week:5,type:"pov",name:"OTEV the Singing Stageroach",category:"physical",description:"The Festie Besties version of OTEV. Bestie groups searched through a festival-themed field for the correct song clue and raced back to their station; the slowest group was eliminated each round."},
+    {week:5,type:"pov",name:"The OTB (On the Block)",category:"strategic",description:"A prize-and-punishment board game. Houseguests rolled balls down a ramp into numbered slots, balancing the push to win the Veto against tempting luxury prizes and grueling punishments along the way."},
 
-    {week:6,type:"hoh",name:"Conspiracy Fest",category:"mental",description:"Houseguests answered questions about bizarre claims and conspiracy-themed images, advancing through rounds until one houseguest remained with the highest score."},
+    {week:6,type:"hoh",name:"Fly High, Sky High",category:"physical",description:"The classic endurance wall. Houseguests stood on narrow foot ledges against a tilting, festival-themed wall while being pelted with freezing water, slime and confetti; the last one holding on won HOH."},
     {week:6,type:"pov",name:"Punkaroo",category:"physical",description:"A giant rock-and-roll pinball machine. Houseguests manually angled a launch ramp, rolling balls to bounce off bumpers and land in high-scoring slots for the best cumulative score."},
 
     {week:7,type:"hoh-brochella",name:"Do You See the VIP?",category:"mental",splitGroup:"brochella",description:"Played only by the indoor Big BroChella group during the Split House twist. Houseguests briefly studied a chaotic, crowded concert image, then were quizzed on hidden VIP-guest details."},
@@ -47,15 +47,15 @@ window.BB24_CONFIG = Object.freeze({
     {week:7,type:"pov-dyrefest",name:"Lunch is Served",category:"physical",splitGroup:"dyrefest",description:"Played by the outdoor group with a rustic, DIY setup. Houseguests built a tower of oversized food replicas on a handheld tray while balancing on a narrow beam, without dropping any of it."},
 
     {week:8,type:"hoh",name:"Carni-Small (Slippery Slope)",category:"physical",description:"The classic slip-and-slide competition. Houseguests ran and slid down an oil-slicked runway, scooping liquid with a shot glass and depositing it into a giant funnel to release a floating ping-pong ball."},
-    {week:8,type:"pov",name:"Pride Slide",category:"physical",description:"Houseguests raced down a slippery festival slide to collect and transfer colored balls, trying to complete their setup before the other competitors."},
+    {week:8,type:"pov",name:"Microbrews",category:"physical",description:"Using two independent ropes attached to a small ring, houseguests gently cradled a ball up the face of a massive vertical board dotted with holes, aiming for the winning slot at the top."},
 
-    {week:9,type:"hoh",name:"Burning Bot",category:"physical",description:"A carnival-themed endurance and balance competition in which houseguests battled a fiery robot-themed setup while trying to outlast the other players."},
-    {week:9,type:"pov",name:"BB Comics",category:"mental",description:"An individual time-trial. Houseguests ziplined past a display of comic covers featuring the cast, memorized the details, and rebuilt the correct covers from memory against the clock."},
-    {week:9,type:"hoh-double",name:"Laser Focus",category:"mental",description:"The first competition of the Double Eviction. Houseguests watched sequences of colored lights and answered questions about the exact order and pattern; the highest score won the second HOH of the night."},
-    {week:9,type:"pov-double",name:"Amp It Up",category:"physical",description:"All six remaining houseguests competed. Each player untangled a cable while moving through a turntable-style obstacle and then connected it to an amplifier; the first to complete the task won the Veto."},
+    {week:9,type:"hoh",name:"Burning Bot",category:"physical",description:"Houseguests race through a festival-themed obstacle course while carrying and placing pieces to complete the Burning Bot challenge. The fastest successful run wins HOH."},
+    {week:9,type:"pov",name:"BB Comics",category:"mental",description:"Houseguests race through a comic-book-themed challenge, memorizing and matching cast comic covers while completing the course as quickly as possible."},
+    {week:9,type:"hoh-double",name:"Laser Focus",category:"mental",description:"During the Week 9 Double Eviction, houseguests watch sequences of colored laser lights and answer questions about the exact order and colors shown. The highest score wins the second HOH."},
+    {week:9,type:"pov-double",name:"Amp It Up",category:"physical",description:"During the Week 9 Double Eviction, houseguests untangle a long cable and race to reach and plug it into an amp. The first houseguest to complete the task wins the Veto."},
 
-    {week:10,type:"hoh",name:"Horror Fest Lockdown",category:"physical",description:"Houseguests battled through a horror-themed competition featuring a locked-down haunted setup, racing to complete the required physical task fastest."},
-    {week:10,type:"pov",name:"Snooze Fest",category:"mental",description:"A sleepy festival-themed Veto competition testing memory and observation as houseguests identified and matched details from a series of scenes."},
+    {week:10,type:"hoh",name:"BB Horror Fest",category:"physical",description:"The house was blacked out and turned into a haunted maze. Houseguests entered one at a time with a flashlight, hunting for specific items; the fastest individual time to find them and escape won HOH."},
+    {week:10,type:"pov",name:"Cruel Summer",category:"physical",description:"A high-speed spatial puzzle. The remaining houseguests raced to assemble a massive 3D block puzzle shaped like a retro boombox; first to lock every piece and buzz in won the Veto."},
 
     {week:11,type:"hoh",name:"Fashion Fest",category:"mental",description:"A final-four memory quiz. Houseguests watched a fast-paced montage of Julie Chen Moonves changing into outfits worn throughout the summer, then were quizzed on exact visual details of the clips and outfits."},
     {week:11,type:"pov",name:"Mathletes",category:"mental",description:"The Final 4 raced to solve numerical and mathematical puzzles built around specific quantities and events that occurred earlier in the season."},
