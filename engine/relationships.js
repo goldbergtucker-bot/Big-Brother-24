@@ -211,6 +211,15 @@
   function decideVetoUse(state, vetoWinner, hoh, nominees) {
     if (!nominees || !nominees.length) return { use: false };
 
+    // FINAL 4 RULE: the one HouseGuest who is neither HOH nor a nominee
+    // cannot use the Veto to remove a nominee. Doing so would leave only
+    // one nominee on the block. That player is instead the sole voter.
+    const activeCount = state.houseguests?.filter(h => h.active).length || 0;
+    const isNominee = nominees.some(n => n.id === vetoWinner.id);
+    if (activeCount === 4 && vetoWinner.id !== hoh.id && !isNominee) {
+      return { use: false, final4SoleVoter: true };
+    }
+
     // If the HOH deliberately planned a backdoor and also wins the POV,
     // the HOH should use the Veto on one of the initial nominees and name
     // the backdoor target as the replacement. The old logic immediately
@@ -226,7 +235,6 @@
       return { use: false };
     }
 
-    const isNominee = nominees.some(n => n.id === vetoWinner.id);
     if (isNominee) {
       // A nominated HouseGuest who wins the Golden Power of Veto always
       // uses it on themselves. There is no random chance to leave
