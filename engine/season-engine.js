@@ -390,12 +390,32 @@
           log(s,{week,phase:s.phase,type:"veto-ceremony",hohId:hoh.id,winnerId:winner.id,nomineeIds:s.nominees,finalNomineeIds:s.nominees,vetoUsed:true,backdoor:true,title:"Veto Ceremony — Backdoor Executed",lines:[`${displayName(winner)} uses the Power of Veto, removing the nominated Festie Besties group from the block.`,`${displayName(hoh)} names ${displayName(target)} and the target's Festie Besties group as the replacement nominees as part of the backdoor plan.`]});
           return;
         }
-        // A planned backdoor must never silently turn into an unrelated
-        // replacement nominee. If the target is no longer legal, preserve the
-        // existing nominations rather than inventing a random replacement.
+        // The backdoor can legitimately fail if the planned target won the
+        // Veto and used it, because the Veto holder is immune from being the
+        // replacement nominee. In that situation the Veto was still used, so
+        // the HOH MUST name another legal replacement. Do not leave the
+        // original nominations in place and do not pretend the Veto was unused.
         s.backdoorTargetId=null;
         s.backdoorReason=null;
-        log(s,{week,phase:s.phase,type:"veto-ceremony",hohId:hoh.id,winnerId:winner.id,nomineeIds:s.nominees,finalNomineeIds:s.nominees,vetoUsed:false,backdoorFailed:true,title:"Veto Ceremony — Backdoor Could Not Execute",lines:[`${displayName(winner)} uses the Power of Veto, but the planned backdoor target is no longer eligible to be named.`,`${displayName(hoh)} does not make an unrelated replacement nomination.`]});
+        const excludeIds=new Set([s.nomineeGroupId,hohGroupId].filter(Boolean));
+        const candidates=s.bestieGroups.filter(g=>!excludeIds.has(g.id)&&g.memberIds.some(id=>{
+          const p=hg(s,id);
+          return p&&p.active&&!p.safe&&p.id!==winner.id;
+        }));
+        const replacementGroup=pick(candidates);
+        let replacementMembers=[];
+        if(replacementGroup){
+          replacementMembers=replacementGroup.memberIds.map(id=>hg(s,id)).filter(p=>p&&p.active&&p.id!==winner.id);
+          replacementMembers.forEach(p=>p.nominated=true);
+          s.nomineeGroupId=replacementGroup.id;
+        }else{
+          s.nomineeGroupId=null;
+          const indivPool=living(s).filter(p=>p.id!==hoh.id&&!p.safe&&!s.nominees.includes(p.id)&&p.id!==winner.id);
+          replacementMembers=shuffle(indivPool).slice(0,Math.min(2,indivPool.length));
+          replacementMembers.forEach(p=>p.nominated=true);
+        }
+        s.nominees=replacementMembers.map(p=>p.id);
+        log(s,{week,phase:s.phase,type:"veto-ceremony",hohId:hoh.id,winnerId:winner.id,nomineeIds:s.nominees,finalNomineeIds:s.nominees,vetoUsed:true,backdoorFailed:true,title:"Veto Ceremony — Backdoor Fails",lines:[`${displayName(winner)} uses the Power of Veto, but the planned backdoor target is the Veto holder and cannot be named as the replacement nominee.`,replacementMembers.length?`${displayName(hoh)} names ${replacementMembers.map(displayName).join(", ")} as the replacement nominee${replacementMembers.length>1?"s":""}.`:`No eligible replacement nominee remains.`]});
         return;
       }
 
