@@ -228,10 +228,12 @@
 
     const isNominee = nominees.some(n => n.id === vetoWinner.id);
     if (isNominee) {
-      // Nearly always save yourself.
-      return Math.random() < 0.92
-        ? { use: true, saveId: vetoWinner.id }
-        : { use: false };
+      // A nominated HouseGuest who wins the Golden Power of Veto always
+      // uses it on themselves. There is no random chance to leave
+      // themselves on the block. This also preserves the correct behavior
+      // for Festie Besties, where the winning nominee represents their
+      // nominated Bestie group.
+      return { use: true, saveId: vetoWinner.id };
     }
 
     // Non-nominee winner: use it if they're close with a nominee.
