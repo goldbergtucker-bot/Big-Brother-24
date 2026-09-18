@@ -589,14 +589,23 @@
   }
 
   /* --------------------------- STANDARD WEEKS --------------------------- */
+  function getHOHPool(s, extraExcludedIds=[]){
+    const priorIds=new Set([...(Array.isArray(s._priorHohIds)?s._priorHohIds:[]), ...(s.currentHOH?[s.currentHOH]:[]), ...extraExcludedIds]);
+    // The outgoing HOH is never eligible for the next regular HOH competition.
+    // Do not fall back to the full living house: doing so can accidentally put
+    // the outgoing HOH back into the competition when only a few players remain.
+    let pool=living(s).filter(p=>!priorIds.has(p.id));
+    return pool;
+  }
+
   function runStandardWeek(s,week){
     s.week=week;s.phase="standard";
     s.houseguests.forEach(h=>{h.safe=false;h.nominated=false;});
-    const priorIds=new Set(s._priorHohIds.length?s._priorHohIds:(s.currentHOH?[s.currentHOH]:[]));
-    let pool=living(s).filter(p=>!priorIds.has(p.id));
-    if(pool.length<2)pool=living(s);
+    const pool=getHOHPool(s);
+    if(pool.length<1)return null;
     const comp=C().runCompetition(pool,{week,type:"hoh"});
     const hoh=comp.winner;
+    if(!hoh||pool.some(p=>p.id===hoh.id)===false) return null;
     s.currentHOH=hoh.id;s._priorHohIds=[hoh.id];
     log(s,{week,phase:"standard",type:"hoh",winnerId:hoh.id,participants:pool.map(p=>p.id),competition:comp,title:`Head of Household — ${comp.label}`,lines:[`${displayName(hoh)} wins HOH.`]});
     if(week===CFG().festieBestiesFormWeek) formBestieGroups(s);
@@ -625,9 +634,7 @@
     s.houseguests.forEach(h=>{h.safe=false;h.nominated=false;});
 
     // ROUND 1: the normal Week 9 cycle (Burning Bot -> BB Comics -> eviction).
-    const priorIds=new Set(s._priorHohIds.length?s._priorHohIds:(s.currentHOH?[s.currentHOH]:[]));
-    let pool=living(s).filter(p=>!priorIds.has(p.id));
-    if(pool.length<2)pool=living(s);
+    let pool=getHOHPool(s);
     const hohComp=C().runCompetition(pool,{week:9,type:"hoh"});
     const hoh=hohComp.winner;
     s.currentHOH=hoh.id;s._priorHohIds=[hoh.id];
@@ -642,9 +649,7 @@
     // ROUND 2: this happens inside Week 9. It is NOT Week 10 and must not
     // create a generic "Social/Physical/Mental Comp" week.
     s.houseguests.forEach(h=>{h.safe=false;h.nominated=false;});
-    const priorSecond=new Set([hoh.id]);
-    pool=living(s).filter(p=>!priorSecond.has(p.id));
-    if(pool.length<2)pool=living(s);
+    pool=getHOHPool(s,[hoh.id]);
     const secondHohComp=C().runCompetition(pool,{week:9,type:"hoh-double"});
     const secondHoh=secondHohComp.winner;
     s.currentHOH=secondHoh.id;s._priorHohIds=[secondHoh.id];
@@ -660,7 +665,10 @@
 
   /* ----------------------- SPLIT HOUSE (WEEK 7) ----------------------- */
   function runSplitHouse(s,week){
-    const pool=shuffle(living(s));
+    // The outgoing HOH from the preceding week must sit out of both Split House
+    // HOH competitions. Only the Final HOH is exempt from this restriction.
+    const outgoing=new Set(Array.isArray(s._priorHohIds)?s._priorHohIds:[]);
+    const pool=shuffle(living(s).filter(p=>!outgoing.has(p.id)&&p.id!==s.currentHOH));
     const half=Math.ceil(pool.length/2);
     const groups=[
       {id:"brochella",label:"Big BroChella",memberIds:pool.slice(0,half).map(p=>p.id)},
