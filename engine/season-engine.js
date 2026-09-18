@@ -346,6 +346,19 @@
     const hoh=hg(s,s.currentHOH),winner=veto.winner;
     let decision=R().decideVetoUse(s,winner,hoh,noms);
 
+    // FINAL 4 SPECIAL RULE: if the Veto winner is the one HouseGuest who is
+    // neither HOH nor nominated, they do NOT use the Veto to remove a nominee.
+    // Doing so would leave only one nominee on the block. Their reward for
+    // winning the Final 4 Veto is instead becoming the sole voter to evict.
+    // This must override every generic/backdoor veto-use decision.
+    const finalFour = living(s).length === 4;
+    const finalFourNonNominee = finalFour && winner.id !== hoh.id &&
+      !noms.some(n=>n.id===winner.id);
+    if(finalFourNonNominee){
+      decision={use:false,finalFourSoleVoter:true};
+      s.finalFourSoleVoterId=winner.id;
+    }
+
     // A planned backdoor is a committed nomination strategy. Never let the
     // generic veto-use decision cancel it, including the special case where
     // the HOH wins the POV. The HOH must remove an initial nominee and name
@@ -360,7 +373,11 @@
     }
 
     if(!decision.use){
-      log(s,{week,phase:s.phase,type:"veto-ceremony",hohId:hoh.id,winnerId:winner.id,nomineeIds:s.nominees,finalNomineeIds:s.nominees,vetoUsed:false,title:"Veto Ceremony — Not Used",lines:[`${displayName(winner)} does not use the Power of Veto.`]});
+      if(decision.finalFourSoleVoter){
+        log(s,{week,phase:s.phase,type:"veto-ceremony",hohId:hoh.id,winnerId:winner.id,nomineeIds:s.nominees,finalNomineeIds:s.nominees,vetoUsed:false,finalFour:true,soleVoterId:winner.id,title:"Final 4 Veto — Sole Vote",lines:[`${displayName(winner)} wins the Final 4 Power of Veto but cannot use it because they are neither the HOH nor a nominee.`,`${displayName(winner)} becomes the sole voter to evict one of the two nominees.`]});
+      }else{
+        log(s,{week,phase:s.phase,type:"veto-ceremony",hohId:hoh.id,winnerId:winner.id,nomineeIds:s.nominees,finalNomineeIds:s.nominees,vetoUsed:false,title:"Veto Ceremony — Not Used",lines:[`${displayName(winner)} does not use the Power of Veto.`]});
+      }
       return;
     }
     if(s.nomineeGroupId){
@@ -613,43 +630,6 @@
     evictionCycle(s,week);
   }
 
-  /* ---------------------- DOUBLE EVICTION (WEEK 9) ---------------------- */
-  function runDoubleEvictionRound(s,week,round,hohType,povType){
-    s.week=week;s.phase="double-eviction";
-    s.houseguests.forEach(h=>{h.safe=false;h.nominated=false;});
-    const priorIds=new Set(s._priorHohIds||[]);
-    let pool=living(s).filter(p=>!priorIds.has(p.id));
-    if(pool.length<2) pool=living(s);
-    const hohComp=C().runCompetition(pool,{week,type:hohType});
-    const hoh=hohComp.winner;
-    s.currentHOH=hoh.id;
-    s._priorHohIds=Array.from(new Set([...(s._priorHohIds||[]),hoh.id]));
-    log(s,{week,phase:"double-eviction",round,type:"hoh",winnerId:hoh.id,participants:pool.map(p=>p.id),competition:hohComp,title:`Double Eviction — Round ${round} HOH — ${hohComp.label}`,lines:[`${displayName(hoh)} wins the Round ${round} HOH.`]});
-
-    runNominations(s,week);
-    const povPool=selectPOVPlayers(s,week);
-    const veto=runPOVCompetition(s,week,povPool,povType);
-    applyVeto(s,week,veto);
-    const evicted=evictionCycle(s,week,null,"double-eviction");
-    if(evicted){
-      log(s,{week,phase:"double-eviction",round,type:"round-complete",evictedId:evicted.id,title:`Double Eviction — Round ${round} Complete`,lines:[`${displayName(evicted)} is the Round ${round} evictee.`]});
-    }
-    return {hoh,evicted};
-  }
-
-  function runDoubleEvictionWeek(s,week){
-    s.week=week;s.phase="double-eviction";
-    // Round 1 begins with the normal outgoing-HOH restriction.
-    const round1=runDoubleEvictionRound(s,week,1,"hoh","pov");
-    if(living(s).length<4)return;
-    // Round 2 is immediate: the Round 1 HOH is ineligible for the new HOH,
-    // and the new HOH gets a completely new nomination/POV/eviction cycle.
-    s._priorHohIds=[round1.hoh.id];
-    const round2=runDoubleEvictionRound(s,week,2,"hoh-double","pov-double");
-    s._priorHohIds=Array.from(new Set([round1.hoh.id,round2.hoh.id]));
-    log(s,{week,phase:"double-eviction",type:"double-eviction-complete",participants:living(s).map(p=>p.id),title:"Double Eviction — Complete",lines:[`${displayName(round1.hoh)}'s round produced the first eviction.`,`${displayName(round2.hoh)}'s round produced the second eviction.`]});
-  }
-
   /* ----------------------- SPLIT HOUSE (WEEK 7) ----------------------- */
   function runSplitHouse(s,week){
     const pool=shuffle(living(s));
@@ -720,6 +700,7 @@
     ensureState(s);
     s.history=[];s.jury=[];s.evicted=[];s.evictionVotes=[];s.nominees=[];s.povPlayers=[];s.vetoWinners=[];
     s.currentHOH=null;s.originalHOH=null;s.finale=null;
+    s.finalFourSoleVoterId=null;
     s.backstage=null;s.bestieGroups=[];s.splitHouse=null;s.nomineeGroupId=null;s._priorHohIds=[];
     s.season.evictionCount=0;s.season.castSize=s.houseguests.length;s.teams=[];
     s.houseguests.forEach(h=>{h.active=true;h.safe=false;h.nominated=false;h.juryMember=false;h.evicted=false;h.placement=null;});
@@ -727,7 +708,6 @@
     let week=2,guard=0;
     while(living(s).length>3&&week<=30&&guard<40){
       if(week===CFG().splitHouseWeek&&living(s).length>=6) runSplitHouseWeek(s,week);
-      else if(week===9&&living(s).length>=6) runDoubleEvictionWeek(s,week);
       else runStandardWeek(s,week);
       week++;guard++;
     }
