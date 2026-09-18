@@ -75,7 +75,7 @@ window.BB24_CONFIG = Object.freeze({
       id: "festie-besties",
       name: "Festie Besties",
       week: 3,
-      summary: "During the Week 3 HOH, houseguests are grouped into pairs (and, if the cast size is odd, one trio) as they're eliminated from the competition. During Weeks 3–5, the HOH nominates one entire Bestie group for eviction — the whole group goes on the block together, though only one member is actually evicted. One additional Bestie group joins the HOH and nominees in the POV; if a nominated trio makes the pool larger than six, every houseguest plays. If POV is used, it removes the whole nominated group, and the HOH names a full replacement group. On eviction night, the house votes on which member of the block group goes home; survivors keep their Bestie tie for future weeks."
+      summary: "During the Week 3 HOH, houseguests are grouped into pairs (and, if the cast size is odd, one trio) as they're eliminated from the competition. From then on, the HOH nominates one entire Bestie group for eviction — the whole group goes on the block together, though only one member is actually evicted. One additional Bestie group joins the HOH and nominees in the POV; if a nominated trio makes the pool larger than six, every houseguest plays. If POV is used, it removes the whole nominated group, and the HOH names a full replacement group. On eviction night, the house votes on which member of the block group goes home; survivors keep their Bestie tie for future weeks."
     },
     {
       id: "split-house",
@@ -88,7 +88,7 @@ window.BB24_CONFIG = Object.freeze({
   notes: [
     "16-houseguest custom cast, no opening teams",
     "Backstage Boss twist runs during Week 1 only",
-    "Festie Besties runs only during Weeks 3–5; surviving members may regroup into trios during that period, then the twist ends before Week 6",
+    "Festie Besties groups form at the Week 3 HOH and remain active only through Week 5; the twist ends before Week 6",
     "Split House Double Eviction occurs in Week 7, splitting the house into BroChella and Dyre Fest",
     "Final 3 uses the three-part Final HOH format",
     "Custom relationships and alliances can be entered before simulation"
