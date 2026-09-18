@@ -398,7 +398,7 @@
         s.backdoorTargetId=null;
         s.backdoorReason=null;
         const excludeIds=new Set([s.nomineeGroupId,hohGroupId].filter(Boolean));
-        const candidates=s.bestieGroups.filter(g=>!excludeIds.has(g.id)&&g.memberIds.some(id=>{
+        const candidates=s.bestieGroups.filter(g=>!excludeIds.has(g.id)&&!g.memberIds.includes(winner.id)&&g.memberIds.some(id=>{
           const p=hg(s,id);
           return p&&p.active&&!p.safe&&p.id!==winner.id;
         }));
@@ -420,7 +420,7 @@
       }
 
       const excludeIds=new Set([s.nomineeGroupId,hohGroupId].filter(Boolean));
-      const candidates=s.bestieGroups.filter(g=>!excludeIds.has(g.id)&&g.memberIds.some(id=>{const p=hg(s,id);return p&&p.active;}));
+      const candidates=s.bestieGroups.filter(g=>!excludeIds.has(g.id)&&!g.memberIds.includes(winner.id)&&g.memberIds.some(id=>{const p=hg(s,id);return p&&p.active&&p.id!==winner.id;}));
       const replacementGroup=pick(candidates);
       let replacementMembers=[];
       if(replacementGroup){
@@ -431,7 +431,7 @@
         // No eligible replacement Bestie group remains (rare, small-cast edge case).
         // Fall back to a normal individual replacement pair so the block is never empty.
         s.nomineeGroupId=null;
-        const indivPool=living(s).filter(p=>p.id!==hoh.id&&!p.safe);
+        const indivPool=living(s).filter(p=>p.id!==hoh.id&&!p.safe&&p.id!==winner.id&&!s.nominees.includes(p.id));
         replacementMembers=shuffle(indivPool).slice(0,Math.min(2,indivPool.length));
         replacementMembers.forEach(p=>p.nominated=true);
       }
@@ -613,6 +613,43 @@
     evictionCycle(s,week);
   }
 
+  /* ---------------------- DOUBLE EVICTION (WEEK 9) ---------------------- */
+  function runDoubleEvictionRound(s,week,round,hohType,povType){
+    s.week=week;s.phase="double-eviction";
+    s.houseguests.forEach(h=>{h.safe=false;h.nominated=false;});
+    const priorIds=new Set(s._priorHohIds||[]);
+    let pool=living(s).filter(p=>!priorIds.has(p.id));
+    if(pool.length<2) pool=living(s);
+    const hohComp=C().runCompetition(pool,{week,type:hohType});
+    const hoh=hohComp.winner;
+    s.currentHOH=hoh.id;
+    s._priorHohIds=Array.from(new Set([...(s._priorHohIds||[]),hoh.id]));
+    log(s,{week,phase:"double-eviction",round,type:"hoh",winnerId:hoh.id,participants:pool.map(p=>p.id),competition:hohComp,title:`Double Eviction — Round ${round} HOH — ${hohComp.label}`,lines:[`${displayName(hoh)} wins the Round ${round} HOH.`]});
+
+    runNominations(s,week);
+    const povPool=selectPOVPlayers(s,week);
+    const veto=runPOVCompetition(s,week,povPool,povType);
+    applyVeto(s,week,veto);
+    const evicted=evictionCycle(s,week,null,"double-eviction");
+    if(evicted){
+      log(s,{week,phase:"double-eviction",round,type:"round-complete",evictedId:evicted.id,title:`Double Eviction — Round ${round} Complete`,lines:[`${displayName(evicted)} is the Round ${round} evictee.`]});
+    }
+    return {hoh,evicted};
+  }
+
+  function runDoubleEvictionWeek(s,week){
+    s.week=week;s.phase="double-eviction";
+    // Round 1 begins with the normal outgoing-HOH restriction.
+    const round1=runDoubleEvictionRound(s,week,1,"hoh","pov");
+    if(living(s).length<4)return;
+    // Round 2 is immediate: the Round 1 HOH is ineligible for the new HOH,
+    // and the new HOH gets a completely new nomination/POV/eviction cycle.
+    s._priorHohIds=[round1.hoh.id];
+    const round2=runDoubleEvictionRound(s,week,2,"hoh-double","pov-double");
+    s._priorHohIds=Array.from(new Set([round1.hoh.id,round2.hoh.id]));
+    log(s,{week,phase:"double-eviction",type:"double-eviction-complete",participants:living(s).map(p=>p.id),title:"Double Eviction — Complete",lines:[`${displayName(round1.hoh)}'s round produced the first eviction.`,`${displayName(round2.hoh)}'s round produced the second eviction.`]});
+  }
+
   /* ----------------------- SPLIT HOUSE (WEEK 7) ----------------------- */
   function runSplitHouse(s,week){
     const pool=shuffle(living(s));
@@ -690,6 +727,7 @@
     let week=2,guard=0;
     while(living(s).length>3&&week<=30&&guard<40){
       if(week===CFG().splitHouseWeek&&living(s).length>=6) runSplitHouseWeek(s,week);
+      else if(week===9&&living(s).length>=6) runDoubleEvictionWeek(s,week);
       else runStandardWeek(s,week);
       week++;guard++;
     }
