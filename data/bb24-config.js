@@ -22,47 +22,49 @@ window.BB24_CONFIG = Object.freeze({
 
   /* Official BB24 competition names and descriptions of the formats used on the show. */
   competitionSchedule: [
-    {week:1,type:"hoh",name:"Drumming for Power",category:"physical",description:"Houseguests race on giant festival drums, navigating a timed physical course to be the first to complete the required sequence."},
-    {week:1,type:"pov",name:"Ren Fest",category:"physical",description:"Houseguests race through a Renaissance-festival obstacle course, collecting and placing oversized festival pieces as quickly as possible."},
+    {week:1,type:"hoh",name:"Drumming for Power",category:"physical",description:"Houseguests split into three mini-qualifier groups (\"Potty Talk,\" \"Piercing Station,\" and \"Hangin' Tough\"). Each station's winner advanced to a head-to-head final: unlock a gear box and assemble a large 3D drum-kit puzzle. The Backstage Boss did not compete."},
+    {week:1,type:"pov",name:"Ren Fest",category:"physical",description:"A medieval festival challenge. Houseguests rode a mechanical horse down a track, using a foam lance to snatch swinging metal rings as they passed. Most rings collected in the time limit won the Power of Veto."},
+    {week:1,type:"backstage-duel",name:"Hit the Road",category:"physical",description:"A head-to-head duel between the house's eviction-night evictee and the remaining Backstage Pass houseguest. The loser of the duel is eliminated from the game; the winner remains a houseguest."},
 
-    {week:2,type:"hoh",name:"The BB Pie Fest",category:"physical",description:"Houseguests compete in a pie-themed festival race, navigating the course and completing the required pie challenges to finish fastest."},
-    {week:2,type:"pov",name:"Mermaid Fest",category:"physical",description:"A mermaid-themed festival competition requiring houseguests to navigate the course and complete the underwater-themed challenge as quickly as possible."},
+    {week:2,type:"hoh",name:"The BB Pie Fest",category:"physical",description:"A head-to-head bracket race across a backyard obstacle course. Houseguests sprinted a runway carrying oversized, unstable pies, trying to plant them on a finish-line stand without dropping them."},
+    {week:2,type:"pov",name:"Mermaid Fest",category:"physical",description:"An under-the-sea obstacle course. Houseguests crawled through a shallow, water-logged maze under a low net, transferring decorative pearls to a collection bin to win the Power of Veto."},
 
-    {week:3,type:"hoh",name:"Get Lit",category:"mental",description:"Houseguests answer questions about details from a series of festival lighting displays while surviving successive rounds of elimination."},
-    {week:3,type:"pov",name:"Woodstack",category:"physical",description:"A Festie Besties Co-POV competition in which Bestie partners work together in a wood-stacking challenge; the winning pair earns the Power of Veto."},
+    {week:3,type:"hoh",name:"Get Lit",category:"mental",description:"Houseguests watched elaborate music-festival lighting sequences and answered true/false memory questions about the colors and patterns. As players were eliminated, they chose tables to form the season's Festie Besties pairs."},
+    {week:3,type:"pov",name:"Woodstack",category:"physical",description:"Played in Festie Bestie pairs. Partners coordinated to stack large, uneven wooden logs into a balanced, free-standing tower that could hold itself up once they stepped away."},
 
-    {week:4,type:"hoh",name:"The Invitation",category:"physical",description:"Houseguests compete in a festival-themed invitation challenge, maneuvering and placing oversized invitations through the course."},
-    {week:4,type:"pov",name:"Trippy Watch Party",category:"mental",description:"A Festie Besties Co-POV challenge requiring partners to identify changes and details in psychedelic festival images."},
+    {week:4,type:"hoh",name:"The Invitation",category:"physical",description:"A festival-themed shuffleboard challenge. Houseguests slid oversized, weighted envelopes down a long slippery table, aiming to land them in high-scoring zones without sliding into the gutter."},
+    {week:4,type:"pov",name:"Trippy Watch Party",category:"mental",description:"Played in pairs. Houseguests compared a baseline image against a slightly altered version on a giant tie-dye kaleidoscope screen, racing to spot the visual discrepancies."},
 
-    {week:5,type:"hoh",name:"Mind Your Step",category:"physical",description:"Houseguests carefully navigate a narrow path while completing the required steps of the festival-themed challenge; the fastest successful run wins HOH."},
-    {week:5,type:"pov",name:"OTEV the Singing Stageroach",category:"mental",description:"The Festie Besties play OTEV together, racing to retrieve the correct answers and return to their seats before the next round; the last pair eliminated loses."},
+    {week:5,type:"hoh",name:"Mind Your Step",category:"physical",description:"A balance-and-assembly challenge. Houseguests walked narrow elevated beams to transfer 3D puzzle pieces one at a time to a build station, reconstructing a giant graphic design."},
+    {week:5,type:"pov",name:"OTEV the Singing Stageroach",category:"physical",description:"The Festie Besties version of OTEV. Bestie groups searched through a festival-themed field for the correct song clue and raced back to their station; the slowest group was eliminated each round."},
 
-    {week:6,type:"hoh",name:"Conspiracy Fest",category:"physical",description:"The classic endurance wall competition. Houseguests hold onto the wall while it tilts and the elements make the challenge increasingly difficult; the last houseguest remaining wins HOH."},
-    {week:6,type:"pov",name:"Punkaroo",category:"physical",description:"Houseguests play a punk-rock themed pinball challenge, launching and directing balls toward scoring targets to earn the highest score."},
+    {week:6,type:"hoh",name:"Conspiracy Fest",category:"mental",description:"Houseguests answered questions about bizarre claims and conspiracy-themed images, advancing through rounds until one houseguest remained with the highest score."},
+    {week:6,type:"pov",name:"Punkaroo",category:"physical",description:"A giant rock-and-roll pinball machine. Houseguests manually angled a launch ramp, rolling balls to bounce off bumpers and land in high-scoring slots for the best cumulative score."},
 
-    {week:7,type:"hoh-brochella",name:"Do You See The VIP?",category:"mental",splitGroup:"brochella",description:"The Big BroChella group competes in a VIP-themed memory challenge. Only houseguests in the indoor group participate."},
-    {week:7,type:"hoh-dyrefest",name:"Do You See The VIP?",category:"mental",splitGroup:"dyrefest",description:"The Dyre Fest group competes separately in the same VIP-themed HOH challenge. Only houseguests in the outdoor group participate."},
-    {week:7,type:"pov-brochella",name:"One, Two, Three, VIP",category:"mental",splitGroup:"brochella",description:"The Big BroChella group competes in the VIP-themed Power of Veto competition."},
-    {week:7,type:"pov-dyrefest",name:"Lunch is Served",category:"physical",splitGroup:"dyrefest",description:"The Dyre Fest group competes separately in Lunch is Served for its Power of Veto."},
+    {week:7,type:"hoh-brochella",name:"Do You See the VIP?",category:"mental",splitGroup:"brochella",description:"Played only by the indoor Big BroChella group during the Split House twist. Houseguests briefly studied a chaotic, crowded concert image, then were quizzed on hidden VIP-guest details."},
+    {week:7,type:"hoh-dyrefest",name:"Backyard Holdout",category:"physical",splitGroup:"dyrefest",description:"Played only by the outdoor Dyre Fest group, secluded to the backyard for the week. Houseguests stood on a vibrating platform, gripping a single overhead handle; the last one standing won HOH for the outdoor group."},
+    {week:7,type:"pov-brochella",name:"One, Two, Three, VIP",category:"strategic",splitGroup:"brochella",description:"Played by the indoor group. Houseguests used logic clues at interlocking festival-lineup puzzle stations to determine the exact scheduling order of the VIP guests."},
+    {week:7,type:"pov-dyrefest",name:"Lunch is Served",category:"physical",splitGroup:"dyrefest",description:"Played by the outdoor group with a rustic, DIY setup. Houseguests built a tower of oversized food replicas on a handheld tray while balancing on a narrow beam, without dropping any of it."},
 
-    {week:8,type:"hoh",name:"Carni-Small",category:"physical",description:"Houseguests race through the carnival-themed Carni-Small competition, sliding through the course and completing the challenge as quickly as possible."},
-    {week:8,type:"pov",name:"Pride Slide",category:"physical",description:"Houseguests slide through the Pride-themed course, collecting and transferring the required material to complete the challenge."},
+    {week:8,type:"hoh",name:"Carni-Small (Slippery Slope)",category:"physical",description:"The classic slip-and-slide competition. Houseguests ran and slid down an oil-slicked runway, scooping liquid with a shot glass and depositing it into a giant funnel to release a floating ping-pong ball."},
+    {week:8,type:"pov",name:"Pride Slide",category:"physical",description:"Houseguests raced down a slippery festival slide to collect and transfer colored balls, trying to complete their setup before the other competitors."},
 
-    {week:9,type:"hoh",name:"Burning Bot",category:"physical",description:"A Zingbot-themed competition in which houseguests race to complete the Burning Bot challenge and post the fastest successful time."},
-    {week:9,type:"pov",name:"BB Comics",category:"mental",description:"Houseguests race through the BB Comics challenge, memorizing and matching comic-book images featuring the houseguests."},
-    {week:9,type:"hoh-double",name:"Laser Focus",category:"mental",description:"The second HOH of the double eviction is a rapid laser-focused challenge played immediately after the first eviction."},
-    {week:9,type:"pov-double",name:"Amp It Up",category:"physical",description:"The second Power of Veto of the double eviction is an amp-themed challenge played during the second half of the night."},
+    {week:9,type:"hoh",name:"Burning Bot",category:"physical",description:"A carnival-themed endurance and balance competition in which houseguests battled a fiery robot-themed setup while trying to outlast the other players."},
+    {week:9,type:"pov",name:"BB Comics",category:"mental",description:"An individual time-trial. Houseguests ziplined past a display of comic covers featuring the cast, memorized the details, and rebuilt the correct covers from memory against the clock."},
+    {week:9,type:"hoh-double",name:"Laser Focus",category:"mental",description:"The first competition of the Double Eviction. Houseguests watched sequences of colored lights and answered questions about the exact order and pattern; the highest score won the second HOH of the night."},
+    {week:9,type:"pov-double",name:"Amp It Up",category:"physical",description:"All six remaining houseguests competed. Each player untangled a cable while moving through a turntable-style obstacle and then connected it to an amplifier; the first to complete the task won the Veto."},
 
-    {week:10,type:"hoh",name:"Horror Fest Lockdown",category:"physical",description:"Houseguests compete in a horror-festival challenge while navigating the lockdown course and trying to complete it in the fastest time."},
-    {week:10,type:"pov",name:"Snooze Fest",category:"mental",description:"Houseguests compete in the Snooze Fest Power of Veto challenge, testing memory and attention through the festival-themed setup."},
+    {week:10,type:"hoh",name:"Horror Fest Lockdown",category:"physical",description:"Houseguests battled through a horror-themed competition featuring a locked-down haunted setup, racing to complete the required physical task fastest."},
+    {week:10,type:"pov",name:"Snooze Fest",category:"mental",description:"A sleepy festival-themed Veto competition testing memory and observation as houseguests identified and matched details from a series of scenes."},
 
-    {week:11,type:"hoh",name:"Fashion Fest",category:"mental",description:"Houseguests compete in a fashion-themed memory and observation challenge based on details from the season."},
-    {week:11,type:"pov",name:"Mathletes",category:"mental",description:"Houseguests solve numerical and mathematical questions based on events and details from the season; the fastest correct performance wins the Veto."},
+    {week:11,type:"hoh",name:"Fashion Fest",category:"mental",description:"A final-four memory quiz. Houseguests watched a fast-paced montage of Julie Chen Moonves changing into outfits worn throughout the summer, then were quizzed on exact visual details of the clips and outfits."},
+    {week:11,type:"pov",name:"Mathletes",category:"mental",description:"The Final 4 raced to solve numerical and mathematical puzzles built around specific quantities and events that occurred earlier in the season."},
 
-    {week:12,type:"final-hoh-1",name:"Wiener-Palooza",category:"physical",description:"Final HOH Part 1 is an endurance competition in which the final three must hold on through increasingly difficult conditions; the last houseguest remaining advances to Part 3."},
-    {week:12,type:"final-hoh-2",name:"Festival Lineup",category:"mental",description:"Final HOH Part 2 is a timed memory challenge in which the two remaining finalists reconstruct the season's competition lineup in chronological order."},
-    {week:12,type:"final-hoh-3",name:"Jury Fest",category:"mental",description:"Final HOH Part 3 is a live jury-based question competition between the winners of Parts 1 and 2."}
+    {week:12,type:"final-hoh-1",name:"Final HOH Part 1",category:"physical",description:"The final three houseguests hung on to massive, swinging rope handles as they spun and repeatedly smashed into a padded wall while sprayed with fluids. The last person still holding on advanced directly to Part 3."},
+    {week:12,type:"final-hoh-2",name:"Final HOH Part 2",category:"mental",description:"The two houseguests who didn't win Part 1 raced individually in zipline harnesses, retrieving physical signs of the season's HOH and Veto competitions and sorting them into exact chronological order."},
+    {week:12,type:"final-hoh-3",name:"Final HOH Part 3",category:"mental",description:"A live, eight-question A/B multiple-choice quiz between the winners of Parts 1 and 2, based on statements made by members of the jury."}
   ],
+
   /* --------------------------- TWIST REFERENCE --------------------------- */
   twists: [
     {
