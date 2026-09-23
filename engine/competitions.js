@@ -23,7 +23,7 @@
     const description=schedule?.description||opts.description||"A Big Brother competition where skill, timing and strategy determine the winner.";
     const weights=schedule?.skills||({[category]:.7,general:.3});
     const scored=candidates.map(h=>{const base=skillScore(h,weights);const noise=(opts.noiseMin??.82)+Math.random()*((opts.noiseMax??1.18)-(opts.noiseMin??.82));return{hg:h,score:base*noise}}).sort((a,b)=>b.score-a.score);
-    return {category,label,description,name:label,winner:scored[0].hg,ranking:scored.map(x=>({id:x.hg.id,score:Math.round(x.score*10)/10})),official:!!schedule,type:opts.type||null,week:opts.week??null};
+    return {category,label,description,name:label,format:schedule?.format||schedule?.displayType||null,winner:scored[0].hg,ranking:scored.map(x=>({id:x.hg.id,score:Math.round(x.score*10)/10})),official:!!schedule&&!schedule.cancelled,cancelled:!!schedule?.cancelled,type:opts.type||null,week:opts.week??null};
   }
   function getCompetition(week,type){return scheduleFor({week,type});}
   window.Competitions={runCompetition,pickCategory,getCompetition,competitionLabel:c=>c?.name||c?.label||c,competitionDescription:c=>c?.description||""};
