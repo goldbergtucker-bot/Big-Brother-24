@@ -665,10 +665,11 @@
 
   /* ----------------------- SPLIT HOUSE (WEEK 7) ----------------------- */
   function runSplitHouse(s,week){
-    // The outgoing HOH from the preceding week must sit out of both Split House
-    // HOH competitions. Only the Final HOH is exempt from this restriction.
-    const outgoing=new Set(Array.isArray(s._priorHohIds)?s._priorHohIds:[]);
-    const pool=shuffle(living(s).filter(p=>!outgoing.has(p.id)&&p.id!==s.currentHOH));
+    // BB24 Week 7 is a special Split House week: the outgoing Week 6 HOH
+    // IS eligible to play in the Week 7 HOH competitions. All 10 active
+    // houseguests must be assigned to the two groups before either group
+    // begins its HOH cycle. This produces two groups of five in BB24.
+    const pool=shuffle(living(s));
     const half=Math.ceil(pool.length/2);
     const groups=[
       {id:"brochella",label:"Big BroChella",memberIds:pool.slice(0,half).map(p=>p.id)},
