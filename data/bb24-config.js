@@ -46,7 +46,7 @@ window.BB24_CONFIG = Object.freeze({
     {week:7,type:"pov-brochella",name:"One, Two, Three, VIP",category:"strategic",splitGroup:"brochella",description:"Played by the Big BroChella group. Houseguests used clues to determine the correct order of VIPs in the festival lineup; the winning player earned the Power of Veto for the group."},
     {week:7,type:"pov-dyrefest",name:"Lunch is Served",category:"physical",splitGroup:"dyrefest",description:"Played by the Dyre Fest group. Houseguests completed a food-themed balancing/building challenge in the backyard; the fastest successful player won the group’s Power of Veto."},
 
-    {week:8,type:"hoh",name:"Carni-Small",category:"physical",description:"A carnival-themed slip-and-slide race. Houseguests slid down a slick course, collected liquid and transferred it into a container to raise a ball. The first player to release the ball and complete the challenge won HOH."},
+    {week:8,type:"hoh",name:"Carni-Small",category:"physical",description:"Stack tiny objects in a vertical formation by using oversized tweezers. The first houseguest to successfully build the required stack wins the HOH competition."},
     {week:8,type:"pov",name:"Pride Slide",category:"physical",description:"A colorful slippery-slope Veto competition. Houseguests raced down a slick course to collect and transfer liquid, with the fastest successful run winning the Power of Veto."},
 
     {week:9,type:"hoh",name:"Burning Bot",category:"physical",description:"Houseguests race through a festival-themed obstacle course while carrying and placing pieces to complete the Burning Bot challenge. The fastest successful run wins HOH."},
